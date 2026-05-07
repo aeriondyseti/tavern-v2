@@ -12,6 +12,7 @@ import {
 } from "@tavern/shared";
 
 import { type Db } from "../db/client.js";
+import { getSettings } from "../settings/repo.js";
 import {
   anchorFacets,
   entries,
@@ -172,13 +173,23 @@ export const getScene = (db: Db, id: string): Scene | null => {
   };
 };
 
+const setupFromDefaults = (db: Db): SetupData => {
+  const s = getSettings(db);
+  const base = defaultSetup();
+  base.model.id = s.defaultModel;
+  base.model.temperature = s.defaultTemperature;
+  base.model.max_tokens = s.defaultMaxTokens;
+  if (s.defaultThinkingBudget !== null) base.model.thinking_budget = s.defaultThinkingBudget;
+  return base;
+};
+
 export const createTale = (
   db: Db,
   input: { name: string; description?: string; anchorProse?: string },
 ): Tale => {
   const id = newId();
   db.transaction((tx) => {
-    const setupId = insertSetup(tx, "tale", defaultSetup());
+    const setupId = insertSetup(tx, "tale", setupFromDefaults(tx));
     tx.insert(tales)
       .values({
         id,

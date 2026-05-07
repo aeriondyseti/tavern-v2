@@ -4,6 +4,7 @@ import { buildCatalogRoutes } from "./catalog/routes.js";
 import { buildSearchRoutes } from "./catalog/search-routes.js";
 import { type Db } from "./db/client.js";
 import { buildNarratorRoutes } from "./narrator/routes.js";
+import { buildSettingsRoutes } from "./settings/routes.js";
 import { buildTalesRoutes } from "./tales/routes.js";
 
 export const buildApp = (db: Db) => {
@@ -14,6 +15,7 @@ export const buildApp = (db: Db) => {
   app.route("/api", buildSearchRoutes(db));
   app.route("/api", buildTalesRoutes(db));
   app.route("/api", buildNarratorRoutes(db));
+  app.route("/api", buildSettingsRoutes(db));
 
   return app;
 };

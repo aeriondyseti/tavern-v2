@@ -22,6 +22,13 @@
       "when": 1778142958498,
       "tag": "0002_beats",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778145525662,
+      "tag": "0003_settings",
+      "breakpoints": true
     }
   ]
 }

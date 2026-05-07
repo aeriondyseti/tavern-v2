@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { blob, check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { blob, check, index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 import type {
   ConnectionKind,
@@ -266,6 +266,26 @@ export const beatTranscripts = sqliteTable(
   }),
 );
 
+export const EMBEDDING_PROVIDERS = ["local", "api"] as const;
+export type EmbeddingProviderKind = (typeof EMBEDDING_PROVIDERS)[number];
+
+export const settings = sqliteTable("settings", {
+  id: integer("id").primaryKey(),
+  defaultModel: text("default_model").notNull().default("claude-opus-4-7"),
+  defaultTemperature: real("default_temperature").notNull().default(1.0),
+  defaultMaxTokens: integer("default_max_tokens").notNull().default(4096),
+  defaultThinkingBudget: integer("default_thinking_budget"),
+  embeddingProvider: text("embedding_provider", { enum: EMBEDDING_PROVIDERS })
+    .notNull()
+    .default("local"),
+  embeddingModelLocal: text("embedding_model_local")
+    .notNull()
+    .default("Xenova/bge-small-en-v1.5"),
+  embeddingApiUrl: text("embedding_api_url"),
+  embeddingApiKey: text("embedding_api_key"),
+  embeddingApiModel: text("embedding_api_model"),
+});
+
 export type EntryRow = typeof entries.$inferSelect;
 export type FacetRow = typeof facets.$inferSelect;
 export type CueRow = typeof cues.$inferSelect;
@@ -279,3 +299,4 @@ export type PinnedRow = typeof pinned.$inferSelect;
 export type AnchorFacetRow = typeof anchorFacets.$inferSelect;
 export type BeatRow = typeof beats.$inferSelect;
 export type BeatTranscriptRow = typeof beatTranscripts.$inferSelect;
+export type SettingsRow = typeof settings.$inferSelect;
