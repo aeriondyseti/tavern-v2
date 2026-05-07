@@ -47,7 +47,15 @@ jobs:
         run: |
           BASE=$(node -p "require('./apps/server/package.json').version")
           DEV_VERSION="${BASE}-dev.${GITHUB_RUN_NUMBER}"
-          (cd apps/server && npm version --no-git-tag-version "${DEV_VERSION}")
+          # Write the version directly — npm version --no-git-tag-version
+          # still triggers an npm install pass that fails on workspace:*
+          # devDeps. We don't need any reconciliation here, just the field.
+          node -e "
+            const fs = require('fs');
+            const p = JSON.parse(fs.readFileSync('apps/server/package.json', 'utf8'));
+            p.version = '${DEV_VERSION}';
+            fs.writeFileSync('apps/server/package.json', JSON.stringify(p, null, 2) + '\n');
+          "
           echo "PUBLISH_TAG=dev" >> "$GITHUB_ENV"
           echo "PUBLISH_VERSION=${DEV_VERSION}" >> "$GITHUB_ENV"
 
