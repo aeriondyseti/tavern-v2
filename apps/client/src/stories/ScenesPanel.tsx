@@ -1,22 +1,22 @@
 import { useState } from "react";
 
-import { useTales } from "./store.js";
+import { useStories } from "./store.js";
 
 export const ScenesPanel = () => {
-  const { activeTale, activeScene, selectScene, createScene, deleteScene, updateScene, updateTale } = useTales();
+  const { activeStory, activeScene, selectScene, createScene, deleteScene, updateScene, updateStory } = useStories();
 
   const [creating, setCreating] = useState(false);
   const [draftName, setDraftName] = useState("");
 
-  if (!activeTale) return null;
+  if (!activeStory) return null;
 
   const submit = async () => {
     const trimmed = draftName.trim();
     if (!trimmed) return setCreating(false);
-    const scene = await createScene(activeTale.id, { name: trimmed });
+    const scene = await createScene(activeStory.id, { name: trimmed });
     setDraftName("");
     setCreating(false);
-    await updateTale(activeTale.id, { activeSceneId: scene.id });
+    await updateStory(activeStory.id, { activeSceneId: scene.id });
   };
 
   return (
@@ -46,8 +46,8 @@ export const ScenesPanel = () => {
             />
           </li>
         )}
-        {activeTale.scenes.map((s) => {
-          const isActive = activeTale.activeSceneId === s.id;
+        {activeStory.scenes.map((s) => {
+          const isActive = activeStory.activeSceneId === s.id;
           const isOpen = activeScene?.id === s.id;
           return (
             <li
@@ -67,7 +67,7 @@ export const ScenesPanel = () => {
               {!isActive && (
                 <button
                   className="text-[10px] text-zinc-500 hover:text-zinc-100"
-                  onClick={() => updateTale(activeTale.id, { activeSceneId: s.id })}
+                  onClick={() => updateStory(activeStory.id, { activeSceneId: s.id })}
                 >
                   set active
                 </button>
@@ -92,7 +92,7 @@ export const ScenesPanel = () => {
             </li>
           );
         })}
-        {activeTale.scenes.length === 0 && !creating && (
+        {activeStory.scenes.length === 0 && !creating && (
           <li className="text-[11px] italic text-zinc-700">No scenes yet.</li>
         )}
       </ul>

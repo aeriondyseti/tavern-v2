@@ -25,9 +25,7 @@ export type SearchCallRecord = {
     embeddingSim: number;
     blended: number;
     selected: boolean;
-    fromBrings: boolean;
   }>;
-  bringsAdded: string[];
 };
 
 export type BeatEvent =

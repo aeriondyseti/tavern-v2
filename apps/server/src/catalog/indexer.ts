@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 
 import type { Db } from "../db/client.js";
-import { cues, entries, facets } from "../db/schema.js";
+import { cues, entries } from "../db/schema.js";
 import { embed, f32ToBuffer } from "../embeddings/index.js";
 
 let _queue: Promise<unknown> = Promise.resolve();
@@ -15,19 +15,11 @@ const buildSearchableText = (
   db: Db,
   entryId: string,
   name: string,
+  body: string,
 ): { name: string; cueText: string; bodyText: string } => {
   const cueRows = db.select({ term: cues.term }).from(cues).where(eq(cues.entryId, entryId)).all();
-  const facetRows = db
-    .select({ label: facets.label, body: facets.body, mode: facets.mode })
-    .from(facets)
-    .where(eq(facets.entryId, entryId))
-    .all();
   const cueText = cueRows.map((c) => c.term).join(" ");
-  const bodyText = facetRows
-    .filter((f) => f.mode === "always")
-    .map((f) => `${f.label}: ${f.body}`)
-    .join("\n");
-  return { name, cueText, bodyText };
+  return { name, cueText, bodyText: body };
 };
 
 const writeFtsRow = (db: Db, entryId: string, name: string, cueText: string, bodyText: string) => {
@@ -45,7 +37,7 @@ export const indexEntry = (db: Db, entryId: string): Promise<void> =>
   enqueue(async () => {
     const row = db.select().from(entries).where(eq(entries.id, entryId)).get();
     if (!row) return;
-    const { name, cueText, bodyText } = buildSearchableText(db, entryId, row.name);
+    const { name, cueText, bodyText } = buildSearchableText(db, entryId, row.name, row.body);
     writeFtsRow(db, entryId, name, cueText, bodyText);
 
     const text = `${name}\n${cueText}\n${bodyText}`.trim();

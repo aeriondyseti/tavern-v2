@@ -1,12 +1,12 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { BeatEvent, SearchCallRecord, SetupData } from "@tavern/shared";
+import type { BeatEvent, SearchCallRecord, SetupData } from "@tales/shared";
 
 import type { Db } from "../db/client.js";
 import { buildNarratorMcpServer } from "./mcp.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 
 export type RunNarratorArgs = {
-  taleId: string;
+  storyId: string;
   sceneId: string | null;
   setup: SetupData;
   systemPrompt: string;
@@ -26,7 +26,7 @@ export type RunResult = {
   errorMessage?: string;
 };
 
-const NARRATOR_MCP_PREFIX = "mcp__tavern-catalog__";
+const NARRATOR_MCP_PREFIX = "mcp__tales-catalog__";
 
 const TOOL_NAME_BY_FLAG: Record<keyof SetupData["tools"], string> = {
   search_world: `${NARRATOR_MCP_PREFIX}search_world`,
@@ -73,7 +73,7 @@ export const runNarrator = async (db: Db, args: RunNarratorArgs): Promise<RunRes
   };
 
   const mcp = buildNarratorMcpServer(db, {
-    taleId: args.taleId,
+    storyId: args.storyId,
     sceneId: args.sceneId,
     setup: args.setup,
     recorder,
@@ -103,7 +103,7 @@ export const runNarrator = async (db: Db, args: RunNarratorArgs): Promise<RunRes
       options: {
         model: args.setup.model.id,
         systemPrompt: args.systemPrompt,
-        mcpServers: { "tavern-catalog": mcp },
+        mcpServers: { "tales-catalog": mcp },
         allowedTools,
         disallowedTools: FILE_AND_BASH_TOOLS,
         permissionMode: "bypassPermissions",

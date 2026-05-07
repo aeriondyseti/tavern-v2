@@ -4,4 +4,4 @@ export * from "./ids.js";
 export * from "./search.js";
 export * from "./settings.js";
 export * from "./setup.js";
-export * from "./tales.js";
+export * from "./stories.js";

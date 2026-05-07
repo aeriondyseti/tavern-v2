@@ -1,4 +1,4 @@
-import type { Beat, BeatEvent } from "@tavern/shared";
+import type { Beat, BeatEvent } from "@tales/shared";
 import { create } from "zustand";
 
 import { beatsApi, streamBeat, streamRegenerate, streamReroll } from "./api.js";

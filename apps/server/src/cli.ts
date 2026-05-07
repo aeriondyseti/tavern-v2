@@ -8,7 +8,7 @@ import { buildApp } from "./server.js";
 
 const findStaticRoot = (): string | null => {
   const here = import.meta.dirname;
-  const override = process.env.TAVERN_STATIC_ROOT;
+  const override = process.env.TALES_STATIC_ROOT;
   const candidates = [
     override,
     // Published layout: dist/public/ next to dist/cli.js, populated by
@@ -34,4 +34,4 @@ const server = Bun.serve({
   fetch: buildApp(db, { staticRoot }).fetch,
 });
 
-console.log(`tavern running at http://${server.hostname}:${server.port}`);
+console.log(`tales running at http://${server.hostname}:${server.port}`);

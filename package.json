@@ -1,5 +1,5 @@
 {
-  "name": "tavern",
+  "name": "tales",
   "version": "0.0.0",
   "private": true,
   "description": "Browser-based tool for telling stories with an AI Narrator.",
@@ -8,7 +8,7 @@
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "bun --filter '*' dev",
-    "build": "bun --filter @tavern/client build && bun --filter tavern build",
+    "build": "bun --filter @tales/client build && bun --filter tales build",
     "typecheck": "bun --filter '*' typecheck",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",

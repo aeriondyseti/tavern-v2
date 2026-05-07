@@ -1,19 +1,19 @@
 import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
-import type { SearchCallRecord, SetupData } from "@tavern/shared";
+import type { SearchCallRecord, SetupData } from "@tales/shared";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import * as repo from "../catalog/repo.js";
 import { searchWorld } from "../catalog/search.js";
 import type { Db } from "../db/client.js";
-import { entries, facets } from "../db/schema.js";
-import { effectivePinned } from "../tales/repo.js";
+import { entries } from "../db/schema.js";
+import { effectivePinned } from "../stories/repo.js";
 
 export type ToolRecorder = {
   pushSearchCall: (rec: SearchCallRecord) => void;
 };
 
 export type NarratorContext = {
-  taleId: string;
+  storyId: string;
   sceneId: string | null;
   setup: SetupData;
   recorder: ToolRecorder;
@@ -25,12 +25,12 @@ const textResult = (data: unknown) => ({
 
 export const buildNarratorMcpServer = (db: Db, ctx: NarratorContext) =>
   createSdkMcpServer({
-    name: "tavern-catalog",
+    name: "tales-catalog",
     version: "0.1.0",
     tools: [
       tool(
         "search_world",
-        "Search the World catalog for entries relevant to a query. Returns ranked results with names, types, and facet bodies. Brings-related entries are appended automatically.",
+        "Search the World catalog for entries relevant to a query. Returns ranked results with names, types, and entry bodies.",
         {
           query: z.string().describe("free-text query to search the catalog"),
           types: z.array(z.string()).optional().describe("filter to these type IDs"),
@@ -44,20 +44,17 @@ export const buildNarratorMcpServer = (db: Db, ctx: NarratorContext) =>
             threshold: ctx.setup.retrieval.threshold,
             keywordWeight: ctx.setup.retrieval.keyword_weight,
             embeddingWeight: ctx.setup.retrieval.embedding_weight,
-            bringsDepth: ctx.setup.retrieval.brings_depth,
           });
           ctx.recorder.pushSearchCall({
             query: args.query,
             candidates: result.candidates,
-            bringsAdded: result.bringsAdded,
           });
           return textResult({
             results: result.entries.map((e) => ({
               id: e.id,
               name: e.name,
               type: e.typeId,
-              facets: e.facets.map((f) => ({ label: f.label, body: f.body, mode: f.mode })),
-              brings: e.connections.map((c) => c.toEntryId),
+              body: e.body,
             })),
           });
         },
@@ -85,55 +82,34 @@ export const buildNarratorMcpServer = (db: Db, ctx: NarratorContext) =>
             id: entry.id,
             name: entry.name,
             type: entry.typeId,
-            facets: entry.facets.map((f) => ({ label: f.label, body: f.body, mode: f.mode })),
+            body: entry.body,
             cues: entry.cues,
-            brings: entry.connections.map((c) => ({ id: c.toEntryId })),
-            tier: entry.tier,
           });
         },
       ),
       tool(
         "list_active_directions",
-        "List the active Direction entries the Narrator has been configured with, grouped by tier.",
+        "List the active Direction entries the Narrator has been configured with.",
         {},
         async () => {
-          const tiers = ctx.setup.directions;
-          const ids = [...tiers.absolute, ...tiers.strong, ...tiers.normal, ...tiers.background];
-          if (ids.length === 0) return textResult({ tiers: {} });
+          const ids = ctx.setup.directions;
+          if (ids.length === 0) return textResult({ directions: [] });
           const entryRows = db.select().from(entries).where(inArray(entries.id, ids)).all();
-          const facetRows = db.select().from(facets).where(inArray(facets.entryId, ids)).all();
-          const facetsBy = new Map<string, { label: string; body: string }[]>();
-          for (const f of facetRows.filter((x) => x.mode === "always")) {
-            const arr = facetsBy.get(f.entryId) ?? [];
-            arr.push({ label: f.label, body: f.body });
-            facetsBy.set(f.entryId, arr);
-          }
           const byId = new Map(entryRows.map((r) => [r.id, r]));
-          const render = (idList: string[]) =>
-            idList
+          return textResult({
+            directions: ids
               .map((id) => byId.get(id))
               .filter((r): r is NonNullable<typeof r> => r !== undefined)
-              .map((r) => ({
-                id: r.id,
-                name: r.name,
-                facets: facetsBy.get(r.id) ?? [],
-              }));
-          return textResult({
-            tiers: {
-              absolute: render(tiers.absolute),
-              strong: render(tiers.strong),
-              normal: render(tiers.normal),
-              background: render(tiers.background),
-            },
+              .map((r) => ({ id: r.id, name: r.name, body: r.body })),
           });
         },
       ),
       tool(
         "list_pinned",
-        "List the entries pinned for this Tale (or this Scene, if Scene-level pins are set).",
+        "List the entries pinned for this Story (or this Scene, if Scene-level pins are set).",
         {},
         async () => {
-          const list = effectivePinned(db, ctx.taleId, ctx.sceneId);
+          const list = effectivePinned(db, ctx.storyId, ctx.sceneId);
           return textResult({
             pinned: list.map((p) => ({
               id: p.entryId,

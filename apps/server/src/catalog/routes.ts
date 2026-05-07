@@ -1,4 +1,4 @@
-import { EntryCreate, EntryUpdate, KindId } from "@tavern/shared";
+import { EntryCreate, EntryUpdate, KindId } from "@tales/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 

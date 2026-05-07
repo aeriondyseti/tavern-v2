@@ -1,4 +1,4 @@
-import type { BeatEvent } from "@tavern/shared";
+import type { BeatEvent } from "@tales/shared";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { type SSEStreamingApi, streamSSE } from "hono/streaming";
@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import type { Db } from "../db/client.js";
 import { scenes } from "../db/schema.js";
-import { getEffectiveSetup } from "../tales/repo.js";
+import { getEffectiveSetup } from "../stories/repo.js";
 import {
   completeBeat,
   createStreamingBeat,
@@ -52,7 +52,7 @@ const streamBeatGeneration = async (db: Db, stream: SSEStreamingApi, args: Strea
     });
     return;
   }
-  const setup = getEffectiveSetup(db, sceneRow.taleId, args.sceneId);
+  const setup = getEffectiveSetup(db, sceneRow.storyId, args.sceneId);
   if (!setup) {
     await stream.writeSSE({
       event: "error",
@@ -62,7 +62,7 @@ const streamBeatGeneration = async (db: Db, stream: SSEStreamingApi, args: Strea
   }
 
   const composed = composeSystemPrompt(db, {
-    taleId: sceneRow.taleId,
+    storyId: sceneRow.storyId,
     sceneId: args.sceneId,
     setup,
   });
@@ -83,7 +83,7 @@ const streamBeatGeneration = async (db: Db, stream: SSEStreamingApi, args: Strea
   stream.onAbort(() => abort.abort());
 
   const result = await runNarrator(db, {
-    taleId: sceneRow.taleId,
+    storyId: sceneRow.storyId,
     sceneId: args.sceneId,
     setup,
     systemPrompt: composed.text,

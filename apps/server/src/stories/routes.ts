@@ -1,16 +1,16 @@
-import { SetupData } from "@tavern/shared";
+import { SetupData } from "@tales/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 
 import type { Db } from "../db/client.js";
 import * as repo from "./repo.js";
 
-const TaleCreate = z.object({
+const StoryCreate = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   anchorProse: z.string().optional(),
 });
-const TaleUpdate = z.object({
+const StoryUpdate = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
   anchorProse: z.string().optional(),
@@ -32,57 +32,57 @@ const AnchorFacetsReplace = z.object({
   facets: z.array(z.object({ label: z.string().min(1), body: z.string().optional() })),
 });
 
-export const buildTalesRoutes = (db: Db) => {
+export const buildStoriesRoutes = (db: Db) => {
   const r = new Hono();
 
-  r.get("/tales", (c) => c.json(repo.listTales(db)));
+  r.get("/stories", (c) => c.json(repo.listStories(db)));
 
-  r.get("/tales/:id", (c) => {
-    const t = repo.getTale(db, c.req.param("id"));
+  r.get("/stories/:id", (c) => {
+    const t = repo.getStory(db, c.req.param("id"));
     return t ? c.json(t) : c.json({ error: "not found" }, 404);
   });
 
-  r.post("/tales", async (c) => {
-    const body = TaleCreate.safeParse(await c.req.json());
+  r.post("/stories", async (c) => {
+    const body = StoryCreate.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    return c.json(repo.createTale(db, body.data), 201);
+    return c.json(repo.createStory(db, body.data), 201);
   });
 
-  r.patch("/tales/:id", async (c) => {
-    const body = TaleUpdate.safeParse(await c.req.json());
+  r.patch("/stories/:id", async (c) => {
+    const body = StoryUpdate.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    const updated = repo.updateTale(db, c.req.param("id"), body.data);
+    const updated = repo.updateStory(db, c.req.param("id"), body.data);
     return updated ? c.json(updated) : c.json({ error: "not found" }, 404);
   });
 
-  r.delete("/tales/:id", (c) =>
-    repo.deleteTale(db, c.req.param("id")) ? c.body(null, 204) : c.json({ error: "not found" }, 404),
+  r.delete("/stories/:id", (c) =>
+    repo.deleteStory(db, c.req.param("id")) ? c.body(null, 204) : c.json({ error: "not found" }, 404),
   );
 
-  r.put("/tales/:id/setup", async (c) => {
+  r.put("/stories/:id/setup", async (c) => {
     const body = SetupData.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    const updated = repo.updateTaleSetup(db, c.req.param("id"), body.data);
+    const updated = repo.updateStorySetup(db, c.req.param("id"), body.data);
     return updated ? c.json(updated) : c.json({ error: "not found" }, 404);
   });
 
-  r.put("/tales/:id/pinned", async (c) => {
+  r.put("/stories/:id/pinned", async (c) => {
     const body = PinnedReplace.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    return c.json(repo.replacePinned(db, { kind: "tale", id: c.req.param("id") }, body.data.entryIds));
+    return c.json(repo.replacePinned(db, { kind: "story", id: c.req.param("id") }, body.data.entryIds));
   });
 
-  r.put("/tales/:id/anchor-facets", async (c) => {
+  r.put("/stories/:id/anchor-facets", async (c) => {
     const body = AnchorFacetsReplace.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    return c.json(repo.replaceAnchorFacets(db, { taleId: c.req.param("id"), sceneId: null }, body.data.facets));
+    return c.json(repo.replaceAnchorFacets(db, { storyId: c.req.param("id"), sceneId: null }, body.data.facets));
   });
 
-  r.post("/tales/:id/scenes", async (c) => {
+  r.post("/stories/:id/scenes", async (c) => {
     const body = SceneCreate.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
     const created = repo.createScene(db, c.req.param("id"), body.data);
-    return created ? c.json(created, 201) : c.json({ error: "tale not found" }, 404);
+    return created ? c.json(created, 201) : c.json({ error: "story not found" }, 404);
   });
 
   r.get("/scenes/:id", (c) => {
@@ -123,7 +123,9 @@ export const buildTalesRoutes = (db: Db) => {
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
     const scene = repo.getScene(db, c.req.param("id"));
     if (!scene) return c.json({ error: "not found" }, 404);
-    return c.json(repo.replaceAnchorFacets(db, { taleId: scene.taleId, sceneId: c.req.param("id") }, body.data.facets));
+    return c.json(
+      repo.replaceAnchorFacets(db, { storyId: scene.storyId, sceneId: c.req.param("id") }, body.data.facets),
+    );
   });
 
   return r;

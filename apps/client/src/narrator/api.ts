@@ -1,4 +1,4 @@
-import type { Beat, BeatEvent, BeatTranscript } from "@tavern/shared";
+import type { Beat, BeatEvent, BeatTranscript } from "@tales/shared";
 
 import { consumeSseStream, json, send } from "../api/util.js";
 
@@ -21,8 +21,8 @@ export const beatsApi = {
 const sseToBeatEvent = (onEvent: (e: BeatEvent) => void) => (_event: string, data: string) => {
   try {
     onEvent(JSON.parse(data) as BeatEvent);
-  } catch {
-    // ignore malformed frame
+  } catch (e) {
+    console.error("[sseToBeatEvent] failed to parse SSE frame:", data, e);
   }
 };
 

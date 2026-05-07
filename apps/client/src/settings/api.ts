@@ -1,4 +1,4 @@
-import type { OauthStatus, Settings, SettingsPatch } from "@tavern/shared";
+import type { OauthStatus, Settings, SettingsPatch } from "@tales/shared";
 
 import { json, send } from "../api/util.js";
 
@@ -18,7 +18,7 @@ export const downloadBackup = async () => {
   const blob = await r.blob();
   const cd = r.headers.get("content-disposition") ?? "";
   const m = /filename="?([^";]+)"?/.exec(cd);
-  const filename = m?.[1] ?? `tavern-catalog-${Date.now()}.json`;
+  const filename = m?.[1] ?? `tales-catalog-${Date.now()}.json`;
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -40,9 +40,6 @@ export const uploadRestore = async (file: File, mode: "merge" | "replace") => {
     mode: string;
     types: { inserted: number; updated: number };
     entries: { inserted: number; updated: number };
-    facets: number;
     cues: number;
-    connections: number;
-    directionTiers: number;
   }>(r);
 };

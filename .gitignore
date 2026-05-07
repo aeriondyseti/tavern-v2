@@ -31,3 +31,8 @@ data/
 
 # os
 Thumbs.db
+
+# Local design/debug artifacts
+.playwright-mcp/
+/tavern-*.png
+/tales-*.png

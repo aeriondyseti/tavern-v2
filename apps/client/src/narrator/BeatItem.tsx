@@ -1,4 +1,4 @@
-import type { Beat } from "@tavern/shared";
+import type { Beat } from "@tales/shared";
 import { useState } from "react";
 
 import { useNarrator } from "./store.js";

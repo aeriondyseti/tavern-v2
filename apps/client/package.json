@@ -1,5 +1,5 @@
 {
-  "name": "@tavern/client",
+  "name": "@tales/client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tavern/shared": "workspace:*",
+    "@tales/shared": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.27.0",

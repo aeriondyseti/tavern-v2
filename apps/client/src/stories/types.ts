@@ -3,6 +3,6 @@ export type {
   PinnedEntry,
   Scene,
   SceneSummary,
-  Tale,
-  TaleSummary,
-} from "@tavern/shared";
+  Story,
+  StorySummary,
+} from "@tales/shared";

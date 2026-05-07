@@ -6,9 +6,9 @@ import {
   type Scene,
   type SceneSummary,
   type SetupData,
-  type Tale,
-  type TaleSummary,
-} from "@tavern/shared";
+  type Story,
+  type StorySummary,
+} from "@tales/shared";
 import { asc, eq, inArray, max, sql } from "drizzle-orm";
 
 import type { Db } from "../db/client.js";
@@ -19,10 +19,10 @@ import {
   pinned,
   type SceneRow,
   type SetupScope,
+  type StoryRow,
   scenes,
   setups,
-  type TaleRow,
-  tales,
+  stories,
 } from "../db/schema.js";
 import { ensureSettings } from "../settings/repo.js";
 
@@ -31,14 +31,14 @@ export type {
   PinnedEntry,
   Scene,
   SceneSummary,
-  Tale,
-  TaleSummary,
-} from "@tavern/shared";
+  Story,
+  StorySummary,
+} from "@tales/shared";
 
-export type PinnedScope = { kind: "tale"; id: string } | { kind: "scene"; id: string };
+export type PinnedScope = { kind: "story"; id: string } | { kind: "scene"; id: string };
 
 const pinnedScopeCond = (scope: PinnedScope) =>
-  scope.kind === "tale" ? eq(pinned.taleId, scope.id) : eq(pinned.sceneId, scope.id);
+  scope.kind === "story" ? eq(pinned.storyId, scope.id) : eq(pinned.sceneId, scope.id);
 
 const now = () => Date.now();
 
@@ -48,19 +48,19 @@ const insertSetup = (db: Db, scope: SetupScope, data: SetupData): string => {
   return id;
 };
 
-export const listTales = (db: Db): TaleSummary[] => {
-  const rows = db.select().from(tales).orderBy(asc(tales.name)).all();
+export const listStories = (db: Db): StorySummary[] => {
+  const rows = db.select().from(stories).orderBy(asc(stories.name)).all();
   if (rows.length === 0) return [];
   const counts = db
-    .select({ taleId: scenes.taleId, n: sql<number>`count(*)`.as("n") })
+    .select({ storyId: scenes.storyId, n: sql<number>`count(*)`.as("n") })
     .from(scenes)
-    .groupBy(scenes.taleId)
+    .groupBy(scenes.storyId)
     .all();
-  const countByTale = new Map(counts.map((c) => [c.taleId, Number(c.n)]));
-  return rows.map((r) => taleSummary(r, countByTale.get(r.id) ?? 0));
+  const countByStory = new Map(counts.map((c) => [c.storyId, Number(c.n)]));
+  return rows.map((r) => storySummary(r, countByStory.get(r.id) ?? 0));
 };
 
-const taleSummary = (row: TaleRow, sceneCount: number): TaleSummary => ({
+const storySummary = (row: StoryRow, sceneCount: number): StorySummary => ({
   id: row.id,
   name: row.name,
   description: row.description,
@@ -80,15 +80,15 @@ const sceneSummary = (row: SceneRow, hasAdjustments: boolean): SceneSummary => (
   createdAt: row.createdAt,
 });
 
-// Spec §7.4: Scene pins override Tale pins. If the active Scene has any pins,
+// Spec §7.4: Scene pins override Story pins. If the active Scene has any pins,
 // only those render. If the Scene has none (or no Scene is active), fall back
-// to the Tale's pins.
-export const effectivePinned = (db: Db, taleId: string, sceneId: string | null): PinnedEntry[] => {
+// to the Story's pins.
+export const effectivePinned = (db: Db, storyId: string, sceneId: string | null): PinnedEntry[] => {
   if (sceneId) {
     const scenePins = loadPinnedFor(db, { kind: "scene", id: sceneId });
     if (scenePins.length > 0) return scenePins;
   }
-  return loadPinnedFor(db, { kind: "tale", id: taleId });
+  return loadPinnedFor(db, { kind: "story", id: storyId });
 };
 
 const loadPinnedFor = (db: Db, scope: PinnedScope): PinnedEntry[] => {
@@ -114,35 +114,35 @@ const loadPinnedFor = (db: Db, scope: PinnedScope): PinnedEntry[] => {
   }));
 };
 
-const loadAnchorFacetsFor = (db: Db, where: { taleId: string; sceneId: string | null }): AnchorFacet[] => {
+const loadAnchorFacetsFor = (db: Db, where: { storyId: string; sceneId: string | null }): AnchorFacet[] => {
   const condSceneSql = where.sceneId
     ? sql`${anchorFacets.sceneId} = ${where.sceneId}`
     : sql`${anchorFacets.sceneId} IS NULL`;
   const rows: AnchorFacetRow[] = db
     .select()
     .from(anchorFacets)
-    .where(sql`${anchorFacets.taleId} = ${where.taleId} AND ${condSceneSql}`)
+    .where(sql`${anchorFacets.storyId} = ${where.storyId} AND ${condSceneSql}`)
     .orderBy(asc(anchorFacets.position))
     .all();
   return rows.map((r) => ({ id: r.id, label: r.label, body: r.body, position: r.position }));
 };
 
-export const getTale = (db: Db, id: string): Tale | null => {
-  const row = db.select().from(tales).where(eq(tales.id, id)).get();
+export const getStory = (db: Db, id: string): Story | null => {
+  const row = db.select().from(stories).where(eq(stories.id, id)).get();
   if (!row) return null;
   const setupRow = db.select().from(setups).where(eq(setups.id, row.setupId)).get();
   const sceneRows = db
     .select()
     .from(scenes)
-    .where(eq(scenes.taleId, id))
+    .where(eq(scenes.storyId, id))
     .orderBy(asc(scenes.position), asc(scenes.createdAt))
     .all();
   return {
-    ...taleSummary(row, sceneRows.length),
+    ...storySummary(row, sceneRows.length),
     setup: setupRow ? setupRow.data : defaultSetup(),
     scenes: sceneRows.map((s) => sceneSummary(s, s.adjustmentsId !== null)),
-    pinned: loadPinnedFor(db, { kind: "tale", id }),
-    anchorFacets: loadAnchorFacetsFor(db, { taleId: id, sceneId: null }),
+    pinned: loadPinnedFor(db, { kind: "story", id }),
+    anchorFacets: loadAnchorFacetsFor(db, { storyId: id, sceneId: null }),
   };
 };
 
@@ -154,10 +154,10 @@ export const getScene = (db: Db, id: string): Scene | null => {
     : null;
   return {
     ...sceneSummary(row, row.adjustmentsId !== null),
-    taleId: row.taleId,
+    storyId: row.storyId,
     adjustments,
     pinned: loadPinnedFor(db, { kind: "scene", id }),
-    anchorFacets: loadAnchorFacetsFor(db, { taleId: row.taleId, sceneId: id }),
+    anchorFacets: loadAnchorFacetsFor(db, { storyId: row.storyId, sceneId: id }),
   };
 };
 
@@ -171,11 +171,11 @@ const setupFromDefaults = (db: Db): SetupData => {
   return base;
 };
 
-export const createTale = (db: Db, input: { name: string; description?: string; anchorProse?: string }): Tale => {
+export const createStory = (db: Db, input: { name: string; description?: string; anchorProse?: string }): Story => {
   const id = newId();
   db.transaction((tx) => {
-    const setupId = insertSetup(tx, "tale", setupFromDefaults(tx));
-    tx.insert(tales)
+    const setupId = insertSetup(tx, "story", setupFromDefaults(tx));
+    tx.insert(stories)
       .values({
         id,
         name: input.name,
@@ -187,76 +187,76 @@ export const createTale = (db: Db, input: { name: string; description?: string; 
       })
       .run();
   });
-  return getTale(db, id)!;
+  return getStory(db, id)!;
 };
 
-export const updateTale = (
+export const updateStory = (
   db: Db,
   id: string,
   patch: { name?: string; description?: string; anchorProse?: string; activeSceneId?: string | null },
-): Tale | null => {
-  const existing = db.select().from(tales).where(eq(tales.id, id)).get();
+): Story | null => {
+  const existing = db.select().from(stories).where(eq(stories.id, id)).get();
   if (!existing) return null;
-  const updates: Partial<typeof tales.$inferInsert> = { updatedAt: now() };
+  const updates: Partial<typeof stories.$inferInsert> = { updatedAt: now() };
   if (patch.name !== undefined) updates.name = patch.name;
   if (patch.description !== undefined) updates.description = patch.description;
   if (patch.anchorProse !== undefined) updates.anchorProse = patch.anchorProse;
   if (patch.activeSceneId !== undefined) updates.activeSceneId = patch.activeSceneId;
-  db.update(tales).set(updates).where(eq(tales.id, id)).run();
-  return getTale(db, id);
+  db.update(stories).set(updates).where(eq(stories.id, id)).run();
+  return getStory(db, id);
 };
 
-export const deleteTale = (db: Db, id: string): boolean => {
-  const tale = db.select().from(tales).where(eq(tales.id, id)).get();
-  if (!tale) return false;
+export const deleteStory = (db: Db, id: string): boolean => {
+  const story = db.select().from(stories).where(eq(stories.id, id)).get();
+  if (!story) return false;
   const adjustmentIds = db
     .select({ id: scenes.adjustmentsId })
     .from(scenes)
-    .where(eq(scenes.taleId, id))
+    .where(eq(scenes.storyId, id))
     .all()
     .map((r) => r.id)
     .filter((x): x is string => x !== null);
-  const orphanedSetupIds = [tale.setupId, ...adjustmentIds];
+  const orphanedSetupIds = [story.setupId, ...adjustmentIds];
   db.transaction((tx) => {
-    tx.delete(tales).where(eq(tales.id, id)).run();
+    tx.delete(stories).where(eq(stories.id, id)).run();
     tx.delete(setups).where(inArray(setups.id, orphanedSetupIds)).run();
   });
   return true;
 };
 
-export const updateTaleSetup = (db: Db, taleId: string, data: SetupData): SetupData | null => {
-  const tale = db.select().from(tales).where(eq(tales.id, taleId)).get();
-  if (!tale) return null;
-  db.update(setups).set({ data }).where(eq(setups.id, tale.setupId)).run();
-  db.update(tales).set({ updatedAt: now() }).where(eq(tales.id, taleId)).run();
+export const updateStorySetup = (db: Db, storyId: string, data: SetupData): SetupData | null => {
+  const story = db.select().from(stories).where(eq(stories.id, storyId)).get();
+  if (!story) return null;
+  db.update(setups).set({ data }).where(eq(setups.id, story.setupId)).run();
+  db.update(stories).set({ updatedAt: now() }).where(eq(stories.id, storyId)).run();
   return data;
 };
 
-const nextScenePosition = (db: Db, taleId: string): number => {
+const nextScenePosition = (db: Db, storyId: string): number => {
   const r = db
     .select({ m: max(scenes.position) })
     .from(scenes)
-    .where(eq(scenes.taleId, taleId))
+    .where(eq(scenes.storyId, storyId))
     .get();
   return (r?.m ?? -1) + 1;
 };
 
-export const createScene = (db: Db, taleId: string, input: { name: string; anchorProse?: string }): Scene | null => {
-  const tale = db.select().from(tales).where(eq(tales.id, taleId)).get();
-  if (!tale) return null;
+export const createScene = (db: Db, storyId: string, input: { name: string; anchorProse?: string }): Scene | null => {
+  const story = db.select().from(stories).where(eq(stories.id, storyId)).get();
+  if (!story) return null;
   const id = newId();
   db.transaction((tx) => {
     tx.insert(scenes)
       .values({
         id,
-        taleId,
+        storyId,
         name: input.name,
         anchorProse: input.anchorProse ?? "",
-        position: nextScenePosition(tx, taleId),
+        position: nextScenePosition(tx, storyId),
         createdAt: now(),
       })
       .run();
-    tx.update(tales).set({ updatedAt: now() }).where(eq(tales.id, taleId)).run();
+    tx.update(stories).set({ updatedAt: now() }).where(eq(stories.id, storyId)).run();
   });
   return getScene(db, id);
 };
@@ -274,7 +274,7 @@ export const updateScene = (
   if (patch.position !== undefined) updates.position = patch.position;
   if (Object.keys(updates).length > 0) {
     db.update(scenes).set(updates).where(eq(scenes.id, id)).run();
-    db.update(tales).set({ updatedAt: now() }).where(eq(tales.id, existing.taleId)).run();
+    db.update(stories).set({ updatedAt: now() }).where(eq(stories.id, existing.storyId)).run();
   }
   return getScene(db, id);
 };
@@ -287,20 +287,20 @@ export const deleteScene = (db: Db, id: string): boolean => {
       tx.delete(setups).where(eq(setups.id, existing.adjustmentsId)).run();
     }
     tx.delete(scenes).where(eq(scenes.id, id)).run();
-    tx.update(tales)
+    tx.update(stories)
       .set({
         updatedAt: now(),
         activeSceneId: sql`CASE WHEN active_scene_id = ${id} THEN NULL ELSE active_scene_id END`,
       })
-      .where(eq(tales.id, existing.taleId))
+      .where(eq(stories.id, existing.storyId))
       .run();
   });
   return true;
 };
 
-export const getEffectiveSetup = (db: Db, taleId: string, sceneId: string | null): SetupData | null => {
-  const tale = db.select().from(tales).where(eq(tales.id, taleId)).get();
-  if (!tale) return null;
+export const getEffectiveSetup = (db: Db, storyId: string, sceneId: string | null): SetupData | null => {
+  const story = db.select().from(stories).where(eq(stories.id, storyId)).get();
+  if (!story) return null;
   if (sceneId) {
     const scene = db.select().from(scenes).where(eq(scenes.id, sceneId)).get();
     if (scene?.adjustmentsId) {
@@ -308,7 +308,7 @@ export const getEffectiveSetup = (db: Db, taleId: string, sceneId: string | null
       if (adj) return adj.data;
     }
   }
-  const setupRow = db.select().from(setups).where(eq(setups.id, tale.setupId)).get();
+  const setupRow = db.select().from(setups).where(eq(setups.id, story.setupId)).get();
   return setupRow ? setupRow.data : null;
 };
 
@@ -342,7 +342,7 @@ export const replacePinned = (db: Db, scope: PinnedScope, entryIds: string[]): P
       .values(
         entryIds.map((entryId, i) => ({
           id: newId(),
-          taleId: scope.kind === "tale" ? scope.id : null,
+          storyId: scope.kind === "story" ? scope.id : null,
           sceneId: scope.kind === "scene" ? scope.id : null,
           entryId,
           position: i,
@@ -357,12 +357,12 @@ export type AnchorFacetInput = { label: string; body?: string };
 
 export const replaceAnchorFacets = (
   db: Db,
-  scope: { taleId: string; sceneId: string | null },
+  scope: { storyId: string; sceneId: string | null },
   list: AnchorFacetInput[],
 ): AnchorFacet[] => {
   const cond = scope.sceneId
-    ? sql`${anchorFacets.taleId} = ${scope.taleId} AND ${anchorFacets.sceneId} = ${scope.sceneId}`
-    : sql`${anchorFacets.taleId} = ${scope.taleId} AND ${anchorFacets.sceneId} IS NULL`;
+    ? sql`${anchorFacets.storyId} = ${scope.storyId} AND ${anchorFacets.sceneId} = ${scope.sceneId}`
+    : sql`${anchorFacets.storyId} = ${scope.storyId} AND ${anchorFacets.sceneId} IS NULL`;
   db.transaction((tx) => {
     tx.delete(anchorFacets).where(cond).run();
     if (list.length === 0) return;
@@ -370,7 +370,7 @@ export const replaceAnchorFacets = (
       .values(
         list.map((f, i) => ({
           id: newId(),
-          taleId: scope.taleId,
+          storyId: scope.storyId,
           sceneId: scope.sceneId,
           label: f.label,
           body: f.body ?? "",

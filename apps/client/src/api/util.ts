@@ -23,8 +23,13 @@ export const consumeSseStream = (
   void (async () => {
     try {
       const r = await fetch(url, { ...init, signal: ac.signal });
-      if (!r.ok || !r.body) {
-        onFrame("error", JSON.stringify({ message: `${r.status} ${r.statusText}` }));
+      if (!r.ok) {
+        const body = await r.text().catch(() => r.statusText);
+        onFrame("error", JSON.stringify({ message: `${r.status} ${body}` }));
+        return;
+      }
+      if (!r.body) {
+        onFrame("error", JSON.stringify({ message: "response has no body to stream" }));
         return;
       }
       const reader = r.body.getReader();

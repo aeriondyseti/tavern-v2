@@ -1,54 +1,55 @@
-import type { SetupData } from "@tavern/shared";
+import type { SetupData } from "@tales/shared";
 import { useEffect, useState } from "react";
 
 import { useCatalog } from "../catalog/store.js";
 import { BeatStream } from "../narrator/BeatStream.js";
 import { DebugPanel } from "../narrator/DebugPanel.js";
 import { useNarrator } from "../narrator/store.js";
-import { AnchorEditor } from "../tales/AnchorEditor.js";
-import { PinnedEditor } from "../tales/PinnedEditor.js";
-import { ScenesPanel } from "../tales/ScenesPanel.js";
-import { SetupEditor } from "../tales/SetupEditor.js";
-import { useTales } from "../tales/store.js";
-import { TalesPicker } from "../tales/TalesPicker.js";
-import type { Scene, Tale } from "../tales/types.js";
+import { AnchorEditor } from "../stories/AnchorEditor.js";
+import { PinnedEditor } from "../stories/PinnedEditor.js";
+import { ScenesPanel } from "../stories/ScenesPanel.js";
+import { SetupEditor } from "../stories/SetupEditor.js";
+import { StoriesPicker } from "../stories/StoriesPicker.js";
+import { useStories } from "../stories/store.js";
+import type { Scene, Story } from "../stories/types.js";
 
 export const Play = () => {
-  const catalog = useCatalog();
-  const {
-    activeTale,
-    activeScene,
-    saveTaleSetup,
-    saveTalePinned,
-    saveTaleAnchorFacets,
-    saveScenePinned,
-    saveSceneAdjustments,
-    dropSceneAdjustments,
-    saveSceneAnchorFacets,
-    updateTale,
-    updateScene,
-  } = useTales();
+  const catalogLoaded = useCatalog((s) => s.loaded);
+  const loadCatalog = useCatalog((s) => s.load);
+  const activeStory = useStories((s) => s.activeStory);
+  const activeScene = useStories((s) => s.activeScene);
+  const saveStorySetup = useStories((s) => s.saveStorySetup);
+  const saveStoryPinned = useStories((s) => s.saveStoryPinned);
+  const saveStoryAnchorFacets = useStories((s) => s.saveStoryAnchorFacets);
+  const saveScenePinned = useStories((s) => s.saveScenePinned);
+  const saveSceneAdjustments = useStories((s) => s.saveSceneAdjustments);
+  const dropSceneAdjustments = useStories((s) => s.dropSceneAdjustments);
+  const saveSceneAnchorFacets = useStories((s) => s.saveSceneAnchorFacets);
+  const updateStory = useStories((s) => s.updateStory);
+  const updateScene = useStories((s) => s.updateScene);
 
   useEffect(() => {
-    if (!catalog.loaded) void catalog.load();
-  }, [catalog]);
+    if (!catalogLoaded) void loadCatalog();
+  }, [catalogLoaded, loadCatalog]);
 
   return (
     <div className="flex h-full">
-      <TalesPicker />
-      {!activeTale ? (
+      <StoriesPicker />
+      {!activeStory ? (
         <div className="flex flex-1 items-center justify-center text-sm text-zinc-500">
-          Select a tale, or create one.
+          Select a story, or create one.
         </div>
       ) : (
-        <TaleDetail
-          key={activeTale.id}
-          tale={activeTale}
+        <StoryDetail
+          key={activeStory.id}
+          story={activeStory}
           scene={activeScene}
-          onTaleSetupSave={(d) => saveTaleSetup(activeTale.id, d)}
-          onTalePinnedSave={(ids) => saveTalePinned(activeTale.id, ids)}
-          onTaleProseSave={(p) => updateTale(activeTale.id, { anchorProse: p }).then(() => undefined)}
-          onTaleFacetsSave={(f) => saveTaleAnchorFacets(activeTale.id, f)}
+          onStorySetupSave={(d) => saveStorySetup(activeStory.id, d)}
+          onStoryPinnedSave={(ids) => saveStoryPinned(activeStory.id, ids)}
+          onStoryProseSave={async (p) => {
+            await updateStory(activeStory.id, { anchorProse: p });
+          }}
+          onStoryFacetsSave={(f) => saveStoryAnchorFacets(activeStory.id, f)}
           onSceneAdjustmentsSave={(d) => (activeScene ? saveSceneAdjustments(activeScene.id, d) : Promise.resolve())}
           onSceneAdjustmentsDrop={() => (activeScene ? dropSceneAdjustments(activeScene.id) : Promise.resolve())}
           onScenePinnedSave={(ids) => (activeScene ? saveScenePinned(activeScene.id, ids) : Promise.resolve())}
@@ -88,12 +89,12 @@ const BeatStreamPane = ({ scene }: { scene: Scene }) => {
 };
 
 type DetailProps = {
-  tale: Tale;
+  story: Story;
   scene: Scene | null;
-  onTaleSetupSave: (d: SetupData) => Promise<void>;
-  onTalePinnedSave: (ids: string[]) => Promise<void>;
-  onTaleProseSave: (p: string) => Promise<void>;
-  onTaleFacetsSave: (f: { label: string; body?: string }[]) => Promise<void>;
+  onStorySetupSave: (d: SetupData) => Promise<void>;
+  onStoryPinnedSave: (ids: string[]) => Promise<void>;
+  onStoryProseSave: (p: string) => Promise<void>;
+  onStoryFacetsSave: (f: { label: string; body?: string }[]) => Promise<void>;
   onSceneAdjustmentsSave: (d: SetupData) => Promise<void>;
   onSceneAdjustmentsDrop: () => Promise<void>;
   onScenePinnedSave: (ids: string[]) => Promise<void>;
@@ -101,26 +102,26 @@ type DetailProps = {
   onSceneFacetsSave: (f: { label: string; body?: string }[]) => Promise<void>;
 };
 
-const TaleDetail = ({
-  tale,
+const StoryDetail = ({
+  story,
   scene,
-  onTaleSetupSave,
-  onTalePinnedSave,
-  onTaleProseSave,
-  onTaleFacetsSave,
+  onStorySetupSave,
+  onStoryPinnedSave,
+  onStoryProseSave,
+  onStoryFacetsSave,
   onSceneAdjustmentsSave,
   onSceneAdjustmentsDrop,
   onScenePinnedSave,
   onSceneProseSave,
   onSceneFacetsSave,
 }: DetailProps) => {
-  const [tab, setTab] = useState<"tale" | "scene">("tale");
+  const [tab, setTab] = useState<"story" | "scene">("story");
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <header className="border-b border-zinc-800 px-4 py-3">
-        <h2 className="font-serif text-lg text-zinc-100">{tale.name}</h2>
-        {tale.description && <p className="text-xs text-zinc-500">{tale.description}</p>}
+        <h2 className="font-serif text-lg text-zinc-100">{story.name}</h2>
+        {story.description && <p className="text-xs text-zinc-500">{story.description}</p>}
       </header>
       <div className="flex flex-1 overflow-hidden">
         <section className="flex flex-1 flex-col border-r border-zinc-800">
@@ -135,10 +136,10 @@ const TaleDetail = ({
         <aside className="w-[28rem] overflow-y-auto p-4">
           <nav className="mb-4 flex gap-2 border-b border-zinc-800">
             <button
-              className={`px-3 py-1.5 text-xs ${tab === "tale" ? "border-b border-zinc-50 text-zinc-50" : "text-zinc-500 hover:text-zinc-200"}`}
-              onClick={() => setTab("tale")}
+              className={`px-3 py-1.5 text-xs ${tab === "story" ? "border-b border-zinc-50 text-zinc-50" : "text-zinc-500 hover:text-zinc-200"}`}
+              onClick={() => setTab("story")}
             >
-              Tale
+              Story
             </button>
             <button
               className={`px-3 py-1.5 text-xs ${tab === "scene" ? "border-b border-zinc-50 text-zinc-50" : "text-zinc-500 hover:text-zinc-200"} ${scene ? "" : "opacity-40"}`}
@@ -148,21 +149,21 @@ const TaleDetail = ({
               Scene{scene ? ` — ${scene.name}` : ""}
             </button>
           </nav>
-          {tab === "tale" && (
+          {tab === "story" && (
             <div className="space-y-6">
-              <SetupEditor scope="tale" value={tale.setup} onChange={onTaleSetupSave} />
+              <SetupEditor scope="story" value={story.setup} onChange={onStorySetupSave} />
               <div>
                 <h3 className="mb-2 font-serif text-sm uppercase tracking-wide text-zinc-300">Anchor</h3>
                 <AnchorEditor
-                  prose={tale.anchorProse}
-                  onProseChange={onTaleProseSave}
-                  facets={tale.anchorFacets}
-                  onFacetsChange={onTaleFacetsSave}
+                  prose={story.anchorProse}
+                  onProseChange={onStoryProseSave}
+                  facets={story.anchorFacets}
+                  onFacetsChange={onStoryFacetsSave}
                 />
               </div>
               <div>
                 <h3 className="mb-2 font-serif text-sm uppercase tracking-wide text-zinc-300">Pinned</h3>
-                <PinnedEditor pinned={tale.pinned} onChange={onTalePinnedSave} />
+                <PinnedEditor pinned={story.pinned} onChange={onStoryPinnedSave} />
               </div>
               <ScenesPanel />
             </div>
@@ -171,7 +172,7 @@ const TaleDetail = ({
             <div className="space-y-6">
               <header className="flex items-center justify-between">
                 <span className="text-xs text-zinc-500">
-                  {scene.hasAdjustments ? "scene has adjustments" : "inheriting tale setup"}
+                  {scene.hasAdjustments ? "scene has adjustments" : "inheriting story setup"}
                 </span>
                 {scene.hasAdjustments ? (
                   <button className="text-xs text-zinc-400 hover:text-rose-300" onClick={onSceneAdjustmentsDrop}>
@@ -180,9 +181,9 @@ const TaleDetail = ({
                 ) : (
                   <button
                     className="text-xs text-zinc-400 hover:text-zinc-100"
-                    onClick={() => onSceneAdjustmentsSave(tale.setup)}
+                    onClick={() => onSceneAdjustmentsSave(story.setup)}
                   >
-                    fork from tale setup
+                    fork from story setup
                   </button>
                 )}
               </header>
