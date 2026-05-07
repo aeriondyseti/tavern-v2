@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ModelId, SetupData } from "@tavern/shared";
+import { MODEL_OPTIONS, type ModelId, type SetupData } from "@tavern/shared";
 
 import { useCatalog } from "../catalog/store.js";
 import { DIRECTION_TIERS, KIND_DIRECTION } from "../catalog/types.js";
@@ -11,7 +11,6 @@ const TIER_LABEL: Record<DirectionTier, string> = {
   normal: "Style",
   background: "Background",
 };
-const MODEL_OPTIONS: ModelId[] = ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"];
 
 type Props = {
   value: SetupData;

@@ -25,3 +25,9 @@ export type OauthStatus = {
   state: "present" | "missing";
   credentialsPath: string;
 };
+
+export const MODEL_OPTIONS: ModelId[] = [
+  "claude-opus-4-7",
+  "claude-sonnet-4-6",
+  "claude-haiku-4-5-20251001",
+];

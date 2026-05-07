@@ -4,32 +4,21 @@ import { join } from "node:path";
 
 import { Hono } from "hono";
 import { SettingsPatch, type OauthStatus } from "@tavern/shared";
+import { z } from "zod";
 
 import { DB_PATH } from "../config.js";
 import { type Db } from "../db/client.js";
-import { setProvider } from "../embeddings/index.js";
-import { applyRestore, buildBackup, type Backup, type RestoreMode } from "./backup.js";
+import { applyEmbeddingProvider } from "../embeddings/index.js";
+import { BackupSchema, applyRestore, buildBackup } from "./backup.js";
 import { getSettings, updateSettings } from "./repo.js";
 
 const CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
+const RestoreMode = z.enum(["merge", "replace"]);
 
 const oauthStatus = (): OauthStatus => ({
   state: existsSync(CREDENTIALS_PATH) ? "present" : "missing",
   credentialsPath: CREDENTIALS_PATH,
 });
-
-const applySettingsToProvider = (s: ReturnType<typeof getSettings>) => {
-  if (s.embeddingProvider === "api" && s.embeddingApiUrl && s.embeddingApiModel) {
-    setProvider({
-      kind: "api",
-      url: s.embeddingApiUrl,
-      model: s.embeddingApiModel,
-      ...(s.embeddingApiKey ? { apiKey: s.embeddingApiKey } : {}),
-    });
-  } else {
-    setProvider({ kind: "local", model: s.embeddingModelLocal });
-  }
-};
 
 export const buildSettingsRoutes = (db: Db) => {
   const r = new Hono();
@@ -40,7 +29,7 @@ export const buildSettingsRoutes = (db: Db) => {
     const body = SettingsPatch.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
     const next = updateSettings(db, body.data);
-    applySettingsToProvider(next);
+    applyEmbeddingProvider(next);
     return c.json(next);
   });
 
@@ -59,24 +48,20 @@ export const buildSettingsRoutes = (db: Db) => {
   });
 
   r.post("/restore", async (c) => {
-    const mode = (c.req.query("mode") ?? "merge") as RestoreMode;
-    if (mode !== "merge" && mode !== "replace") {
-      return c.json({ error: "mode must be merge or replace" }, 400);
-    }
-    let body: Backup;
+    const mode = RestoreMode.safeParse(c.req.query("mode") ?? "merge");
+    if (!mode.success) return c.json({ error: "mode must be merge or replace" }, 400);
+    let raw: unknown;
     try {
-      body = (await c.req.json()) as Backup;
+      raw = await c.req.json();
     } catch {
       return c.json({ error: "invalid JSON body" }, 400);
     }
+    const parsed = BackupSchema.safeParse(raw);
+    if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
     try {
-      const result = applyRestore(db, body, mode);
-      return c.json(result);
+      return c.json(applyRestore(db, parsed.data, mode.data));
     } catch (e) {
-      return c.json(
-        { error: e instanceof Error ? e.message : String(e) },
-        400,
-      );
+      return c.json({ error: e instanceof Error ? e.message : String(e) }, 400);
     }
   });
 

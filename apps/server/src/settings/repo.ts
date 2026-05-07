@@ -19,37 +19,28 @@ const rowToDto = (row: typeof settings.$inferSelect): Settings => ({
 });
 
 export const ensureSettings = (db: Db): Settings => {
-  const row = db.select().from(settings).where(eq(settings.id, SINGLETON_ID)).get();
-  if (row) return rowToDto(row);
-  db.insert(settings).values({ id: SINGLETON_ID }).run();
-  const seeded = db.select().from(settings).where(eq(settings.id, SINGLETON_ID)).get();
+  const existing = db.select().from(settings).where(eq(settings.id, SINGLETON_ID)).get();
+  if (existing) return rowToDto(existing);
+  const seeded = db.insert(settings).values({ id: SINGLETON_ID }).returning().get();
   return rowToDto(seeded!);
 };
 
 export const getSettings = ensureSettings;
 
+// initDb runs ensureSettings at boot, so the singleton row is guaranteed to
+// exist on every code path that ever reaches the routes.
 export const updateSettings = (db: Db, patch: SettingsPatch): Settings => {
-  ensureSettings(db);
   const updates: Partial<typeof settings.$inferInsert> = {};
-  if (patch.defaultModel !== undefined) updates.defaultModel = patch.defaultModel;
-  if (patch.defaultTemperature !== undefined) updates.defaultTemperature = patch.defaultTemperature;
-  if (patch.defaultMaxTokens !== undefined) updates.defaultMaxTokens = patch.defaultMaxTokens;
-  if (patch.defaultThinkingBudget !== undefined)
-    updates.defaultThinkingBudget = patch.defaultThinkingBudget;
-  if (patch.embeddingProvider !== undefined) updates.embeddingProvider = patch.embeddingProvider;
-  if (patch.embeddingModelLocal !== undefined)
-    updates.embeddingModelLocal = patch.embeddingModelLocal;
-  if (patch.embeddingApiUrl !== undefined) updates.embeddingApiUrl = patch.embeddingApiUrl;
-  if (patch.embeddingApiKey !== undefined) updates.embeddingApiKey = patch.embeddingApiKey;
-  if (patch.embeddingApiModel !== undefined) updates.embeddingApiModel = patch.embeddingApiModel;
-  if (Object.keys(updates).length > 0) {
-    const rows = db
-      .update(settings)
-      .set(updates)
-      .where(eq(settings.id, SINGLETON_ID))
-      .returning()
-      .all();
-    return rowToDto(rows[0]!);
+  for (const key of Object.keys(patch) as (keyof SettingsPatch)[]) {
+    const v = patch[key];
+    if (v !== undefined) (updates as Record<string, unknown>)[key] = v;
   }
-  return ensureSettings(db);
+  if (Object.keys(updates).length === 0) return ensureSettings(db);
+  const row = db
+    .update(settings)
+    .set(updates)
+    .where(eq(settings.id, SINGLETON_ID))
+    .returning()
+    .get();
+  return rowToDto(row!);
 };

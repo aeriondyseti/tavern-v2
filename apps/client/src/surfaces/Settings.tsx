@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import type {
-  ModelId,
-  OauthStatus,
-  Settings as SettingsData,
-  SettingsPatch,
+import {
+  MODEL_OPTIONS,
+  type ModelId,
+  type OauthStatus,
+  type Settings as SettingsData,
+  type SettingsPatch,
 } from "@tavern/shared";
 
 import { useCatalog } from "../catalog/store.js";
@@ -13,12 +14,6 @@ import {
   uploadRestore,
   type StorageInfo,
 } from "../settings/api.js";
-
-const MODEL_OPTIONS: ModelId[] = [
-  "claude-opus-4-7",
-  "claude-sonnet-4-6",
-  "claude-haiku-4-5-20251001",
-];
 
 export const Settings = () => {
   const [settings, setSettings] = useState<SettingsData | null>(null);
@@ -75,7 +70,9 @@ export const Settings = () => {
     if (!file) return setRestoreMessage("Pick a file first.");
     if (
       mode === "replace" &&
-      !confirm("Replace mode wipes all Catalog rows before importing. Continue?")
+      !confirm(
+        "Replace mode wipes types, entries, facets, cues, connections, and direction tiers (kinds are preserved) before importing. Continue?",
+      )
     ) {
       return;
     }

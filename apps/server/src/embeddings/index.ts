@@ -66,3 +66,22 @@ export const cosine = (a: Float32Array, b: Float32Array): number => {
 };
 
 export { onEmbedderStatus, getEmbedderStatus, type EmbedderStatus } from "./local.js";
+
+export const applyEmbeddingProvider = (s: {
+  embeddingProvider: "local" | "api";
+  embeddingModelLocal: string;
+  embeddingApiUrl: string | null;
+  embeddingApiKey: string | null;
+  embeddingApiModel: string | null;
+}) => {
+  if (s.embeddingProvider === "api" && s.embeddingApiUrl && s.embeddingApiModel) {
+    setProvider({
+      kind: "api",
+      url: s.embeddingApiUrl,
+      model: s.embeddingApiModel,
+      ...(s.embeddingApiKey ? { apiKey: s.embeddingApiKey } : {}),
+    });
+  } else {
+    setProvider({ kind: "local", model: s.embeddingModelLocal });
+  }
+};
