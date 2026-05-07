@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { SetupData } from "@tavern/shared";
 
 import { talesApi } from "./api.js";
-import type { Scene, Tale, TaleSummary } from "./types.js";
+import type { Scene, SceneSummary, Tale, TaleSummary } from "./types.js";
 
 type State = {
   tales: TaleSummary[];
@@ -41,9 +41,27 @@ type Actions = {
   ) => Promise<void>;
 };
 
-const refreshTale = async (id: string): Promise<Tale> => talesApi.get(id);
+const summarize = (t: Tale): TaleSummary => ({
+  id: t.id,
+  name: t.name,
+  description: t.description,
+  anchorProse: t.anchorProse,
+  activeSceneId: t.activeSceneId,
+  sceneCount: t.scenes.length,
+  createdAt: t.createdAt,
+  updatedAt: t.updatedAt,
+});
 
-export const useTales = create<State & Actions>((set, get) => ({
+const summarizeScene = (s: Scene): SceneSummary => ({
+  id: s.id,
+  name: s.name,
+  anchorProse: s.anchorProse,
+  position: s.position,
+  hasAdjustments: s.hasAdjustments,
+  createdAt: s.createdAt,
+});
+
+export const useTales = create<State & Actions>((set) => ({
   tales: [],
   activeTaleId: null,
   activeTale: null,
@@ -67,11 +85,8 @@ export const useTales = create<State & Actions>((set, get) => ({
       return;
     }
     set({ activeTaleId: id });
-    const tale = await refreshTale(id);
-    let activeScene: Scene | null = null;
-    if (tale.activeSceneId) {
-      activeScene = await talesApi.getScene(tale.activeSceneId);
-    }
+    const tale = await talesApi.get(id);
+    const activeScene = tale.activeSceneId ? await talesApi.getScene(tale.activeSceneId) : null;
     set({ activeTale: tale, activeScene });
   },
 
@@ -105,98 +120,137 @@ export const useTales = create<State & Actions>((set, get) => ({
   },
 
   saveTaleSetup: async (id, data) => {
-    await talesApi.putSetup(id, data);
-    const tale = await refreshTale(id);
-    set((s) => ({ activeTale: s.activeTaleId === id ? tale : s.activeTale }));
+    const setup = await talesApi.putSetup(id, data);
+    set((s) =>
+      s.activeTaleId === id && s.activeTale
+        ? { activeTale: { ...s.activeTale, setup } }
+        : {},
+    );
   },
 
   saveTalePinned: async (id, entryIds) => {
-    await talesApi.putPinned(id, entryIds);
-    const tale = await refreshTale(id);
-    set((s) => ({ activeTale: s.activeTaleId === id ? tale : s.activeTale }));
+    const next = await talesApi.putPinned(id, entryIds);
+    set((s) =>
+      s.activeTaleId === id && s.activeTale
+        ? { activeTale: { ...s.activeTale, pinned: next } }
+        : {},
+    );
   },
 
   saveTaleAnchorFacets: async (id, facets) => {
-    await talesApi.putAnchorFacets(id, facets);
-    const tale = await refreshTale(id);
-    set((s) => ({ activeTale: s.activeTaleId === id ? tale : s.activeTale }));
+    const next = await talesApi.putAnchorFacets(id, facets);
+    set((s) =>
+      s.activeTaleId === id && s.activeTale
+        ? { activeTale: { ...s.activeTale, anchorFacets: next } }
+        : {},
+    );
   },
 
   createScene: async (taleId, input) => {
     const scene = await talesApi.createScene(taleId, input);
-    const tale = await refreshTale(taleId);
-    set((s) => ({
-      activeTale: s.activeTaleId === taleId ? tale : s.activeTale,
-      tales: s.tales.map((t) => (t.id === taleId ? summarize(tale) : t)),
-    }));
+    set((s) => {
+      if (s.activeTaleId !== taleId || !s.activeTale) return {};
+      const summary = summarizeScene(scene);
+      const tale = { ...s.activeTale, scenes: [...s.activeTale.scenes, summary] };
+      return {
+        activeTale: tale,
+        tales: s.tales.map((t) => (t.id === taleId ? summarize(tale) : t)),
+      };
+    });
     return scene;
   },
 
   updateScene: async (id, patch) => {
     const scene = await talesApi.updateScene(id, patch);
-    const taleId = scene.taleId;
-    const tale = await refreshTale(taleId);
-    set((s) => ({
-      activeTale: s.activeTaleId === taleId ? tale : s.activeTale,
-      activeScene: s.activeScene?.id === id ? scene : s.activeScene,
-    }));
+    set((s) => {
+      const tale = s.activeTale;
+      if (!tale || tale.id !== scene.taleId) {
+        return { activeScene: s.activeScene?.id === id ? scene : s.activeScene };
+      }
+      const next = {
+        ...tale,
+        scenes: tale.scenes.map((sc) => (sc.id === id ? summarizeScene(scene) : sc)),
+      };
+      return {
+        activeTale: next,
+        activeScene: s.activeScene?.id === id ? scene : s.activeScene,
+      };
+    });
     return scene;
   },
 
   deleteScene: async (id) => {
-    const taleId = get().activeTale?.id;
     await talesApi.deleteScene(id);
-    if (taleId) {
-      const tale = await refreshTale(taleId);
-      set((s) => ({
-        activeTale: tale,
+    set((s) => {
+      const tale = s.activeTale;
+      if (!tale) return {};
+      const scenes = tale.scenes.filter((sc) => sc.id !== id);
+      const activeSceneId = tale.activeSceneId === id ? null : tale.activeSceneId;
+      const next = { ...tale, scenes, activeSceneId };
+      return {
+        activeTale: next,
         activeScene: s.activeScene?.id === id ? null : s.activeScene,
-        tales: s.tales.map((t) => (t.id === taleId ? summarize(tale) : t)),
-      }));
-    }
+        tales: s.tales.map((t) => (t.id === tale.id ? summarize(next) : t)),
+      };
+    });
   },
 
   selectScene: async (id) => {
-    if (!id) {
-      set({ activeScene: null });
-      return;
-    }
+    if (!id) return set({ activeScene: null });
     const scene = await talesApi.getScene(id);
     set({ activeScene: scene });
   },
 
   saveSceneAdjustments: async (sceneId, data) => {
-    await talesApi.putSceneAdjustments(sceneId, data);
-    const scene = await talesApi.getScene(sceneId);
-    set((s) => ({ activeScene: s.activeScene?.id === sceneId ? scene : s.activeScene }));
+    const adjustments = await talesApi.putSceneAdjustments(sceneId, data);
+    set((s) => spliceSceneAdjustments(s, sceneId, adjustments, true));
   },
 
   dropSceneAdjustments: async (sceneId) => {
     await talesApi.dropSceneAdjustments(sceneId);
-    const scene = await talesApi.getScene(sceneId);
-    set((s) => ({ activeScene: s.activeScene?.id === sceneId ? scene : s.activeScene }));
+    set((s) => spliceSceneAdjustments(s, sceneId, null, false));
   },
 
   saveScenePinned: async (sceneId, entryIds) => {
-    await talesApi.putScenePinned(sceneId, entryIds);
-    const scene = await talesApi.getScene(sceneId);
-    set((s) => ({ activeScene: s.activeScene?.id === sceneId ? scene : s.activeScene }));
+    const next = await talesApi.putScenePinned(sceneId, entryIds);
+    set((s) =>
+      s.activeScene?.id === sceneId
+        ? { activeScene: { ...s.activeScene, pinned: next } }
+        : {},
+    );
   },
 
   saveSceneAnchorFacets: async (sceneId, facets) => {
-    await talesApi.putSceneAnchorFacets(sceneId, facets);
-    const scene = await talesApi.getScene(sceneId);
-    set((s) => ({ activeScene: s.activeScene?.id === sceneId ? scene : s.activeScene }));
+    const next = await talesApi.putSceneAnchorFacets(sceneId, facets);
+    set((s) =>
+      s.activeScene?.id === sceneId
+        ? { activeScene: { ...s.activeScene, anchorFacets: next } }
+        : {},
+    );
   },
 }));
 
-const summarize = (t: Tale): TaleSummary => ({
-  id: t.id,
-  name: t.name,
-  description: t.description,
-  anchorProse: t.anchorProse,
-  activeSceneId: t.activeSceneId,
-  sceneCount: t.scenes.length,
-  createdAt: t.createdAt,
-  updatedAt: t.updatedAt,
-});
+const spliceSceneAdjustments = (
+  s: State,
+  sceneId: string,
+  adjustments: SetupData | null,
+  hasAdjustments: boolean,
+): Partial<State> => {
+  const patch: Partial<State> = {};
+  if (s.activeScene?.id === sceneId) {
+    patch.activeScene = { ...s.activeScene, adjustments, hasAdjustments };
+  }
+  if (s.activeTale) {
+    const idx = s.activeTale.scenes.findIndex((sc) => sc.id === sceneId);
+    if (idx >= 0) {
+      const summary = s.activeTale.scenes[idx]!;
+      const updated: SceneSummary = { ...summary, hasAdjustments };
+      patch.activeTale = {
+        ...s.activeTale,
+        scenes: s.activeTale.scenes.map((sc, i) => (i === idx ? updated : sc)),
+      };
+    }
+  }
+  return patch;
+};
+

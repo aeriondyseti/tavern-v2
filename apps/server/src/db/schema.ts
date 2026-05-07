@@ -133,7 +133,7 @@ export type SetupScope = (typeof SETUP_SCOPES)[number];
 export const setups = sqliteTable("setups", {
   id: text("id").primaryKey(),
   scope: text("scope", { enum: SETUP_SCOPES }).notNull(),
-  data: text("data").notNull(),
+  data: text("data", { mode: "json" }).$type<import("@tavern/shared").SetupData>().notNull(),
 });
 
 export const tales = sqliteTable("tales", {

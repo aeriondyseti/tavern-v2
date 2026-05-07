@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { ModelId, SetupData } from "@tavern/shared";
 
 import { useCatalog } from "../catalog/store.js";
-import { KIND_DIRECTION } from "../catalog/types.js";
+import { DIRECTION_TIERS, KIND_DIRECTION } from "../catalog/types.js";
 import type { DirectionTier } from "../catalog/types.js";
 
-const TIER_ORDER: DirectionTier[] = ["absolute", "strong", "normal", "background"];
 const TIER_LABEL: Record<DirectionTier, string> = {
   absolute: "Absolute",
   strong: "Strong",
@@ -37,13 +36,16 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
   const allActiveIds = useMemo(
     () =>
       new Set(
-        TIER_ORDER.flatMap((t) => draft.directions[t]).filter((id): id is string => Boolean(id)),
+        DIRECTION_TIERS.flatMap((t) => draft.directions[t]).filter((id): id is string => Boolean(id)),
       ),
     [draft.directions],
   );
 
   const inactiveDirections = useMemo(
-    () => directionEntries.filter((e) => !allActiveIds.has(e.id)),
+    () =>
+      directionEntries
+        .filter((e) => !allActiveIds.has(e.id))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     [directionEntries, allActiveIds],
   );
 
@@ -106,7 +108,7 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
 
       <div>
         <h4 className="mb-2 text-xs uppercase tracking-wide text-zinc-500">Active Directions</h4>
-        {TIER_ORDER.map((tier) => (
+        {DIRECTION_TIERS.map((tier) => (
           <div key={tier} className="mb-3">
             <div className="mb-1 text-[11px] uppercase tracking-wide text-zinc-500">
               {TIER_LABEL[tier]}
@@ -143,7 +145,7 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
                       value={tier}
                       onChange={(ev) => moveToTier(id, ev.target.value as DirectionTier)}
                     >
-                      {TIER_ORDER.map((t) => (
+                      {DIRECTION_TIERS.map((t) => (
                         <option key={t} value={t}>
                           {TIER_LABEL[t]}
                         </option>

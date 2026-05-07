@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { SetupData } from "@tavern/shared";
 
 import { useCatalog } from "../catalog/store.js";
 import { AnchorEditor } from "../tales/AnchorEditor.js";
@@ -7,6 +8,7 @@ import { ScenesPanel } from "../tales/ScenesPanel.js";
 import { SetupEditor } from "../tales/SetupEditor.js";
 import { TalesPicker } from "../tales/TalesPicker.js";
 import { useTales } from "../tales/store.js";
+import type { Scene, Tale } from "../tales/types.js";
 
 export const Play = () => {
   const catalog = useCatalog();
@@ -21,6 +23,7 @@ export const Play = () => {
     dropSceneAdjustments,
     saveSceneAnchorFacets,
     updateTale,
+    updateScene,
   } = useTales();
 
   useEffect(() => {
@@ -47,9 +50,7 @@ export const Play = () => {
           onSceneAdjustmentsDrop={() => activeScene ? dropSceneAdjustments(activeScene.id) : Promise.resolve()}
           onScenePinnedSave={(ids) => activeScene ? saveScenePinned(activeScene.id, ids) : Promise.resolve()}
           onSceneProseSave={async (p) => {
-            if (activeScene) {
-              await useTales.getState().updateScene(activeScene.id, { anchorProse: p });
-            }
+            if (activeScene) await updateScene(activeScene.id, { anchorProse: p });
           }}
           onSceneFacetsSave={(f) =>
             activeScene ? saveSceneAnchorFacets(activeScene.id, f) : Promise.resolve()
@@ -61,13 +62,13 @@ export const Play = () => {
 };
 
 type DetailProps = {
-  tale: NonNullable<ReturnType<typeof useTales.getState>["activeTale"]>;
-  scene: ReturnType<typeof useTales.getState>["activeScene"];
-  onTaleSetupSave: (d: NonNullable<ReturnType<typeof useTales.getState>["activeTale"]>["setup"]) => Promise<void>;
+  tale: Tale;
+  scene: Scene | null;
+  onTaleSetupSave: (d: SetupData) => Promise<void>;
   onTalePinnedSave: (ids: string[]) => Promise<void>;
   onTaleProseSave: (p: string) => Promise<void>;
   onTaleFacetsSave: (f: { label: string; body?: string }[]) => Promise<void>;
-  onSceneAdjustmentsSave: (d: NonNullable<ReturnType<typeof useTales.getState>["activeTale"]>["setup"]) => Promise<void>;
+  onSceneAdjustmentsSave: (d: SetupData) => Promise<void>;
   onSceneAdjustmentsDrop: () => Promise<void>;
   onScenePinnedSave: (ids: string[]) => Promise<void>;
   onSceneProseSave: (p: string) => Promise<void>;
@@ -97,7 +98,7 @@ const TaleDetail = ({
       </header>
       <div className="flex flex-1 overflow-hidden">
         <section className="flex flex-1 items-center justify-center border-r border-zinc-800 p-6 text-sm text-zinc-600">
-          Beats lands in M4.
+          {scene ? `Open scene: ${scene.name}` : "Set or create an active scene to begin."}
         </section>
         <aside className="w-[28rem] overflow-y-auto p-4">
           <nav className="mb-4 flex gap-2 border-b border-zinc-800">

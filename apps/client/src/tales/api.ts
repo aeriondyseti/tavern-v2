@@ -1,21 +1,7 @@
 import type { SetupData } from "@tavern/shared";
 
+import { json, send } from "../api/util.js";
 import type { AnchorFacet, PinnedEntry, Scene, Tale, TaleSummary } from "./types.js";
-
-const json = async <T>(r: Response): Promise<T> => {
-  if (!r.ok) {
-    const body = await r.text();
-    throw new Error(`${r.status} ${r.statusText}: ${body}`);
-  }
-  if (r.status === 204) return undefined as T;
-  return (await r.json()) as T;
-};
-
-const send = (url: string, init?: RequestInit) =>
-  fetch(url, {
-    ...init,
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
-  });
 
 export const talesApi = {
   list: () => send("/api/tales").then((r) => json<TaleSummary[]>(r)),

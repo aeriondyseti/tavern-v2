@@ -71,7 +71,9 @@ export const buildTalesRoutes = (db: Db) => {
   r.put("/tales/:id/pinned", async (c) => {
     const body = PinnedReplace.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    return c.json(repo.replacePinned(db, { taleId: c.req.param("id") }, body.data.entryIds));
+    return c.json(
+      repo.replacePinned(db, { kind: "tale", id: c.req.param("id") }, body.data.entryIds),
+    );
   });
 
   r.put("/tales/:id/anchor-facets", async (c) => {
@@ -123,7 +125,9 @@ export const buildTalesRoutes = (db: Db) => {
   r.put("/scenes/:id/pinned", async (c) => {
     const body = PinnedReplace.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    return c.json(repo.replacePinned(db, { sceneId: c.req.param("id") }, body.data.entryIds));
+    return c.json(
+      repo.replacePinned(db, { kind: "scene", id: c.req.param("id") }, body.data.entryIds),
+    );
   });
 
   r.put("/scenes/:id/anchor-facets", async (c) => {

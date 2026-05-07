@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useCatalog } from "../catalog/store.js";
 import type { PinnedEntry } from "./types.js";
@@ -12,8 +12,15 @@ export const PinnedEditor = ({ pinned, onChange }: Props) => {
   const { entries, types } = useCatalog();
   const [saving, setSaving] = useState(false);
 
-  const ids = pinned.map((p) => p.entryId);
-  const candidates = entries.filter((e) => !ids.includes(e.id));
+  const ids = useMemo(() => pinned.map((p) => p.entryId), [pinned]);
+  const idSet = useMemo(() => new Set(ids), [ids]);
+  const candidates = useMemo(
+    () =>
+      entries
+        .filter((e) => !idSet.has(e.id))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [entries, idSet],
+  );
 
   const apply = async (next: string[]) => {
     setSaving(true);
