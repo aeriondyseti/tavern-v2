@@ -39,11 +39,14 @@ export const searchWorld = async (db: Db, opts: SearchOptions): Promise<SearchRe
   const allowedTypeIds = resolveAllowedTypes(db, opts);
 
   const ftsQuery = sanitizeFtsQuery(queryText);
+  // Cap FTS hits so the inArray() below stays under SQLite's 999 bound-param
+  // limit. bm25() is negative (lower = more relevant), so ORDER BY bm25 ASC
+  // keeps the most relevant rows.
+  const FTS_HIT_LIMIT = 500;
   const ftsRows: { entry_id: string; bm25: number }[] = ftsQuery
-    ? (db.all(sql`SELECT entry_id, bm25(entries_fts) AS bm25 FROM entries_fts WHERE entries_fts MATCH ${ftsQuery}`) as {
-        entry_id: string;
-        bm25: number;
-      }[])
+    ? (db.all(
+        sql`SELECT entry_id, bm25(entries_fts) AS bm25 FROM entries_fts WHERE entries_fts MATCH ${ftsQuery} ORDER BY bm25 LIMIT ${FTS_HIT_LIMIT}`,
+      ) as { entry_id: string; bm25: number }[])
     : [];
 
   const queryEmbedding = await embed(queryText)

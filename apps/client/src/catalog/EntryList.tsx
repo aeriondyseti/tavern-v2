@@ -4,8 +4,14 @@ import { useCatalog } from "./store.js";
 import { NEW_ENTRY_SENTINEL } from "./types.js";
 
 export const EntryList = () => {
-  const { entries, types, selectedTypeId, selectedEntryId, selectEntry, filter, setFilter, reloadEntries } =
-    useCatalog();
+  const entries = useCatalog((s) => s.entries);
+  const types = useCatalog((s) => s.types);
+  const selectedTypeId = useCatalog((s) => s.selectedTypeId);
+  const selectedEntryId = useCatalog((s) => s.selectedEntryId);
+  const selectEntry = useCatalog((s) => s.selectEntry);
+  const filter = useCatalog((s) => s.filter);
+  const setFilter = useCatalog((s) => s.setFilter);
+  const reloadEntries = useCatalog((s) => s.reloadEntries);
 
   const skipInitial = useRef(true);
   useEffect(() => {

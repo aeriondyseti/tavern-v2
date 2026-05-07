@@ -6,7 +6,9 @@ import { useCatalog } from "../catalog/store.js";
 import { TypeTree } from "../catalog/TypeTree.js";
 
 export const Catalog = () => {
-  const { load, error, loaded } = useCatalog();
+  const load = useCatalog((s) => s.load);
+  const error = useCatalog((s) => s.error);
+  const loaded = useCatalog((s) => s.loaded);
   useEffect(() => {
     load();
   }, [load]);

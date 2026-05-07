@@ -60,7 +60,7 @@ export const DebugPanel = ({ beatId }: Props) => {
         {tab === "events" && (
           <ul className="space-y-1">
             {events.map((e, i) => (
-              <li key={i} className="rounded border border-zinc-800 px-2 py-1">
+              <li key={`${e.ts}-${e.type}-${i}`} className="rounded border border-zinc-800 px-2 py-1">
                 <div className="flex items-baseline justify-between">
                   <span className="font-mono text-zinc-100">{e.type}</span>
                   <span className="text-[10px] text-zinc-600">{new Date(e.ts).toLocaleTimeString()}</span>

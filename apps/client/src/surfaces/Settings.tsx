@@ -18,7 +18,7 @@ export const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { load: loadCatalog } = useCatalog();
+  const loadCatalog = useCatalog((s) => s.load);
 
   useEffect(() => {
     void Promise.all([settingsApi.get(), settingsApi.storageInfo()])

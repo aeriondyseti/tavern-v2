@@ -5,7 +5,9 @@ import { useTales } from "./store.js";
 
 export const QuickSwitcher = () => {
   const navigate = useNavigate();
-  const { tales, loadList, selectTale } = useTales();
+  const tales = useTales((s) => s.tales);
+  const loadList = useTales((s) => s.loadList);
+  const selectTale = useTales((s) => s.selectTale);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);

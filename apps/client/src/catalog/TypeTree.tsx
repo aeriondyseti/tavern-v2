@@ -70,27 +70,28 @@ export const TypeTree = () => {
                       }}
                     />
                   ) : (
-                    <button
-                      className={`group flex w-full items-center justify-between px-3 py-1 text-left hover:bg-zinc-900 ${
+                    <div
+                      className={`group flex w-full items-center justify-between hover:bg-zinc-900 ${
                         selectedTypeId === t.id ? "bg-zinc-900 text-zinc-50" : "text-zinc-300"
                       }`}
-                      onClick={() => selectType(t.id)}
                       onDoubleClick={() => {
                         setRenamingId(t.id);
                         setRenameDraft(t.name);
                       }}
                     >
-                      <span>{t.name}</span>
+                      <button type="button" className="flex-1 px-3 py-1 text-left" onClick={() => selectType(t.id)}>
+                        <span>{t.name}</span>
+                      </button>
                       <button
-                        className="invisible text-xs text-zinc-500 hover:text-rose-400 group-hover:visible"
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        type="button"
+                        className="invisible pr-3 text-xs text-zinc-500 hover:text-rose-400 group-hover:visible"
+                        onClick={() => {
                           if (confirm(`Delete type "${t.name}" and all its entries?`)) deleteType(t.id);
                         }}
                       >
                         ×
                       </button>
-                    </button>
+                    </div>
                   )}
                 </li>
               ))}

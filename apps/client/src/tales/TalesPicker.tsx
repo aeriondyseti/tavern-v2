@@ -3,7 +3,12 @@ import { useEffect, useState } from "react";
 import { useTales } from "./store.js";
 
 export const TalesPicker = () => {
-  const { tales, activeTaleId, selectTale, createTale, deleteTale, loadList } = useTales();
+  const tales = useTales((s) => s.tales);
+  const activeTaleId = useTales((s) => s.activeTaleId);
+  const selectTale = useTales((s) => s.selectTale);
+  const createTale = useTales((s) => s.createTale);
+  const deleteTale = useTales((s) => s.deleteTale);
+  const loadList = useTales((s) => s.loadList);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
 
@@ -48,28 +53,26 @@ export const TalesPicker = () => {
           </li>
         )}
         {tales.map((t) => (
-          <li key={t.id}>
-            <button
-              onClick={() => selectTale(t.id)}
-              className={`group flex w-full items-center justify-between border-b border-zinc-900 px-3 py-2 text-left hover:bg-zinc-900 ${
-                activeTaleId === t.id ? "bg-zinc-900 text-zinc-50" : "text-zinc-300"
-              }`}
-            >
-              <span className="flex flex-col">
-                <span className="text-sm">{t.name}</span>
-                <span className="text-[11px] text-zinc-500">
-                  {t.sceneCount} scene{t.sceneCount === 1 ? "" : "s"}
-                </span>
+          <li
+            key={t.id}
+            className={`group flex items-center justify-between border-b border-zinc-900 hover:bg-zinc-900 ${
+              activeTaleId === t.id ? "bg-zinc-900 text-zinc-50" : "text-zinc-300"
+            }`}
+          >
+            <button type="button" onClick={() => selectTale(t.id)} className="flex flex-1 flex-col px-3 py-2 text-left">
+              <span className="text-sm">{t.name}</span>
+              <span className="text-[11px] text-zinc-500">
+                {t.sceneCount} scene{t.sceneCount === 1 ? "" : "s"}
               </span>
-              <button
-                className="invisible text-xs text-zinc-500 hover:text-rose-400 group-hover:visible"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (confirm(`Delete tale "${t.name}"? Scenes and beats will be lost.`)) deleteTale(t.id);
-                }}
-              >
-                ×
-              </button>
+            </button>
+            <button
+              type="button"
+              className="invisible pr-3 text-xs text-zinc-500 hover:text-rose-400 group-hover:visible"
+              onClick={() => {
+                if (confirm(`Delete tale "${t.name}"? Scenes and beats will be lost.`)) deleteTale(t.id);
+              }}
+            >
+              ×
             </button>
           </li>
         ))}

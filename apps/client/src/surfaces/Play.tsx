@@ -14,24 +14,23 @@ import { TalesPicker } from "../tales/TalesPicker.js";
 import type { Scene, Tale } from "../tales/types.js";
 
 export const Play = () => {
-  const catalog = useCatalog();
-  const {
-    activeTale,
-    activeScene,
-    saveTaleSetup,
-    saveTalePinned,
-    saveTaleAnchorFacets,
-    saveScenePinned,
-    saveSceneAdjustments,
-    dropSceneAdjustments,
-    saveSceneAnchorFacets,
-    updateTale,
-    updateScene,
-  } = useTales();
+  const catalogLoaded = useCatalog((s) => s.loaded);
+  const loadCatalog = useCatalog((s) => s.load);
+  const activeTale = useTales((s) => s.activeTale);
+  const activeScene = useTales((s) => s.activeScene);
+  const saveTaleSetup = useTales((s) => s.saveTaleSetup);
+  const saveTalePinned = useTales((s) => s.saveTalePinned);
+  const saveTaleAnchorFacets = useTales((s) => s.saveTaleAnchorFacets);
+  const saveScenePinned = useTales((s) => s.saveScenePinned);
+  const saveSceneAdjustments = useTales((s) => s.saveSceneAdjustments);
+  const dropSceneAdjustments = useTales((s) => s.dropSceneAdjustments);
+  const saveSceneAnchorFacets = useTales((s) => s.saveSceneAnchorFacets);
+  const updateTale = useTales((s) => s.updateTale);
+  const updateScene = useTales((s) => s.updateScene);
 
   useEffect(() => {
-    if (!catalog.loaded) void catalog.load();
-  }, [catalog]);
+    if (!catalogLoaded) void loadCatalog();
+  }, [catalogLoaded, loadCatalog]);
 
   return (
     <div className="flex h-full">
@@ -47,7 +46,9 @@ export const Play = () => {
           scene={activeScene}
           onTaleSetupSave={(d) => saveTaleSetup(activeTale.id, d)}
           onTalePinnedSave={(ids) => saveTalePinned(activeTale.id, ids)}
-          onTaleProseSave={(p) => updateTale(activeTale.id, { anchorProse: p }).then(() => undefined)}
+          onTaleProseSave={async (p) => {
+            await updateTale(activeTale.id, { anchorProse: p });
+          }}
           onTaleFacetsSave={(f) => saveTaleAnchorFacets(activeTale.id, f)}
           onSceneAdjustmentsSave={(d) => (activeScene ? saveSceneAdjustments(activeScene.id, d) : Promise.resolve())}
           onSceneAdjustmentsDrop={() => (activeScene ? dropSceneAdjustments(activeScene.id) : Promise.resolve())}

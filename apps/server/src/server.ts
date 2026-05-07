@@ -24,19 +24,20 @@ export const buildApp = (db: Db, opts: AppOptions = {}) => {
   app.route("/api", buildSettingsRoutes(db));
 
   const staticRoot = opts.staticRoot ?? null;
+  let indexHtml: string | null = null;
   if (staticRoot && existsSync(staticRoot)) {
     const indexPath = join(staticRoot, "index.html");
-    const indexHtml = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : null;
+    if (existsSync(indexPath)) indexHtml = readFileSync(indexPath, "utf8");
     app.use("/*", serveStatic({ root: staticRoot }));
-    if (indexHtml) {
-      // SPA fallback: any non-API path that didn't resolve to a static asset
-      // gets the bundled index.html so client-side routing works on reload.
-      app.notFound((c) => {
-        if (c.req.path.startsWith("/api/")) return c.json({ error: "not found" }, 404);
-        return c.html(indexHtml);
-      });
-    }
   }
+
+  // Always JSON-404 for /api/*, regardless of static-serving config. SPA
+  // fallback to index.html only when the bundled client is present.
+  app.notFound((c) => {
+    if (c.req.path.startsWith("/api/")) return c.json({ error: "not found" }, 404);
+    if (indexHtml) return c.html(indexHtml);
+    return c.text("not found", 404);
+  });
 
   return app;
 };

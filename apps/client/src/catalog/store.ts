@@ -100,7 +100,10 @@ export const useCatalog = create<State & Actions>((set, get) => ({
       typeId: draft.typeId,
       name: draft.name,
       facets: draft.facets.map((f, i) => ({
-        ...(f.id ? { id: f.id } : {}),
+        // EntryEditor uses 'tmp-...' ids only for stable React keys on new
+        // rows; never round-trip them to the server (the server assigns
+        // canonical ULIDs on insert).
+        ...(f.id && !f.id.startsWith("tmp-") ? { id: f.id } : {}),
         label: f.label,
         body: f.body,
         mode: f.mode,

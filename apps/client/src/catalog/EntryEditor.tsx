@@ -4,6 +4,12 @@ import { type EntryDraft, useCatalog } from "./store.js";
 import type { DirectionTier, Entry, FacetMode } from "./types.js";
 import { DIRECTION_TIERS, FACET_MODES, KIND_DIRECTION, NEW_ENTRY_SENTINEL } from "./types.js";
 
+// React needs stable keys for the facets list because rows can be removed
+// mid-edit. Server-side facets use their persisted id; new facets get a
+// transient client id from this counter, never round-tripped to the server.
+let _tmpFacetSeq = 0;
+const tmpFacetId = () => `tmp-${++_tmpFacetSeq}`;
+
 type FacetField = EntryDraft["facets"][number];
 
 const draftFromEntry = (e: Entry): EntryDraft => ({
@@ -20,7 +26,7 @@ const blankDraft = (typeId: string): EntryDraft => ({
   id: null,
   typeId,
   name: "",
-  facets: [{ label: "Description", body: "", mode: "always" }],
+  facets: [{ id: tmpFacetId(), label: "Description", body: "", mode: "always" }],
   cues: [],
   connections: [],
   tier: "normal",
@@ -66,6 +72,7 @@ export const EntryEditor = () => {
   const update = (patch: Partial<EntryDraft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
   const updateFacet = (i: number, patch: Partial<FacetField>) =>
     setDraft((d) => (d ? { ...d, facets: d.facets.map((x, j) => (j === i ? { ...x, ...patch } : x)) } : d));
+  const removeFacetAt = (i: number) => setDraft((d) => (d ? { ...d, facets: d.facets.filter((_, j) => j !== i) } : d));
 
   const onSave = async () => {
     if (!draft.name.trim()) {
@@ -145,7 +152,7 @@ export const EntryEditor = () => {
           <label className="mb-2 block text-xs uppercase tracking-wide text-zinc-500">Facets</label>
           <ul className="space-y-2">
             {draft.facets.map((f, i) => (
-              <li key={i} className="border border-zinc-800 p-3">
+              <li key={f.id ?? `pos-${i}`} className="border border-zinc-800 p-3">
                 <div className="mb-2 flex items-center gap-2">
                   <input
                     className="flex-1 bg-zinc-900 px-2 py-1 text-sm outline-none"
@@ -165,8 +172,9 @@ export const EntryEditor = () => {
                     ))}
                   </select>
                   <button
+                    type="button"
                     className="text-xs text-zinc-500 hover:text-rose-400"
-                    onClick={() => update({ facets: draft.facets.filter((_, j) => j !== i) })}
+                    onClick={() => removeFacetAt(i)}
                   >
                     remove
                   </button>
@@ -182,10 +190,11 @@ export const EntryEditor = () => {
             ))}
           </ul>
           <button
+            type="button"
             className="mt-2 text-xs text-zinc-400 hover:text-zinc-200"
             onClick={() =>
               update({
-                facets: [...draft.facets, { label: "", body: "", mode: "always" }],
+                facets: [...draft.facets, { id: tmpFacetId(), label: "", body: "", mode: "always" }],
               })
             }
           >
@@ -196,12 +205,12 @@ export const EntryEditor = () => {
         <div>
           <label className="mb-2 block text-xs uppercase tracking-wide text-zinc-500">Cues (synonyms / aliases)</label>
           <div className="flex flex-wrap gap-1">
-            {draft.cues.map((c, i) => (
-              <span key={i} className="flex items-center gap-1 bg-zinc-800 px-2 py-1 text-xs">
+            {draft.cues.map((c) => (
+              <span key={c} className="flex items-center gap-1 bg-zinc-800 px-2 py-1 text-xs">
                 {c}
                 <button
                   className="text-zinc-500 hover:text-rose-400"
-                  onClick={() => update({ cues: draft.cues.filter((_, j) => j !== i) })}
+                  onClick={() => update({ cues: draft.cues.filter((x) => x !== c) })}
                 >
                   ×
                 </button>
@@ -228,14 +237,16 @@ export const EntryEditor = () => {
             Brings (this entry pulls these in when fetched)
           </label>
           <ul className="space-y-1">
-            {draft.connections.map((c, i) => {
+            {draft.connections.map((c) => {
               const target = entries.find((e) => e.id === c.toEntryId);
               return (
-                <li key={i} className="flex items-center gap-2 text-sm">
+                <li key={c.toEntryId} className="flex items-center gap-2 text-sm">
                   <span className="flex-1 text-zinc-300">{target?.name ?? c.toEntryId}</span>
                   <button
                     className="text-xs text-zinc-500 hover:text-rose-400"
-                    onClick={() => update({ connections: draft.connections.filter((_, j) => j !== i) })}
+                    onClick={() =>
+                      update({ connections: draft.connections.filter((x) => x.toEntryId !== c.toEntryId) })
+                    }
                   >
                     remove
                   </button>

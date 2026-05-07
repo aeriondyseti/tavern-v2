@@ -1,30 +1,21 @@
 import { useEffect, useState } from "react";
 
-import { type EmbedderStatus, fetchEmbedderStatus, type ReindexEvent, streamReindex } from "./search-api.js";
+import { type EmbedderStatus, type ReindexEvent, streamEmbedderStatus, streamReindex } from "./search-api.js";
 import { useCatalog } from "./store.js";
 
 type Progress = { total: number; done: number; current?: { name: string } };
 
 export const ReindexBar = () => {
-  const { load } = useCatalog();
+  const load = useCatalog((s) => s.load);
   const [embedder, setEmbedder] = useState<EmbedderStatus>({ state: "idle" });
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
 
   useEffect(() => {
-    let alive = true;
-    const tick = () => {
-      void fetchEmbedderStatus()
-        .then((s) => alive && setEmbedder(s))
-        .catch(() => {});
-    };
-    tick();
-    const id = setInterval(tick, 2000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
+    // The /api/embeddings/status/stream SSE endpoint pushes a frame on
+    // connect and again on each state transition, so polling is unnecessary.
+    return streamEmbedderStatus(setEmbedder);
   }, []);
 
   const start = () => {
