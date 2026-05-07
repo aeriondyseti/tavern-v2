@@ -1,20 +1,28 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { blob, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
-import {
+import type {
   ConnectionKind,
   DirectionTier,
   FacetMode,
-  KIND_DIRECTION,
-  KIND_WORLD,
   KindId,
 } from "@tavern/shared";
 
-export const KIND_IDS = KindId.options;
-export const FACET_MODES = FacetMode.options;
-export const CONNECTION_KINDS = ConnectionKind.options;
-export const DIRECTION_TIERS = DirectionTier.options;
-export { KIND_DIRECTION, KIND_WORLD };
+// Hardcoded here (rather than imported from @tavern/shared) because drizzle-kit's
+// CJS loader can't resolve through workspace TS sources. The `satisfies` clauses
+// pin them to the shared Zod-derived types so any drift is a typecheck error.
+export const KIND_IDS = ["direction", "world"] as const satisfies readonly KindId[];
+export const FACET_MODES = ["always", "cue"] as const satisfies readonly FacetMode[];
+export const CONNECTION_KINDS = ["brings"] as const satisfies readonly ConnectionKind[];
+export const DIRECTION_TIERS = [
+  "absolute",
+  "strong",
+  "normal",
+  "background",
+] as const satisfies readonly DirectionTier[];
+
+export const KIND_DIRECTION: KindId = "direction";
+export const KIND_WORLD: KindId = "world";
 export type { ConnectionKind, DirectionTier, FacetMode, KindId } from "@tavern/shared";
 
 export const kinds = sqliteTable("kinds", {
@@ -48,7 +56,7 @@ export const entries = sqliteTable(
       .notNull()
       .references(() => types.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    embeddingVec: text("embedding_vec"),
+    embeddingVec: blob("embedding_vec", { mode: "buffer" }),
     embeddingModel: text("embedding_model"),
     createdAt: integer("created_at")
       .notNull()

@@ -21,6 +21,13 @@ import {
   types,
   KIND_DIRECTION,
 } from "../db/schema.js";
+import { indexEntry, removeFromIndex } from "./indexer.js";
+
+const scheduleIndex = (db: Db, id: string) => {
+  void indexEntry(db, id).catch((err) => {
+    console.error("[index] failed for", id, err);
+  });
+};
 
 export type Kind = { id: string; label: string };
 export type Type = { id: string; kindId: string; name: string; position: number };
@@ -215,6 +222,7 @@ export const createEntry = (db: Db, input: EntryCreate): Entry => {
         .run();
     }
   });
+  scheduleIndex(db, id);
   return getEntry(db, id)!;
 };
 
@@ -257,10 +265,18 @@ export const updateEntry = (db: Db, id: string, patch: EntryUpdate): Entry | nul
       tx.delete(directionTier).where(eq(directionTier.entryId, id)).run();
     }
   });
+  if (
+    patch.name !== undefined ||
+    patch.facets !== undefined ||
+    patch.cues !== undefined
+  ) {
+    scheduleIndex(db, id);
+  }
   return getEntry(db, id);
 };
 
 export const deleteEntry = (db: Db, id: string): boolean => {
+  removeFromIndex(db, id);
   const r = db.delete(entries).where(eq(entries.id, id)).run();
   return r.changes > 0;
 };

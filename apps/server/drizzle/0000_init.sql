@@ -27,7 +27,7 @@ CREATE TABLE `entries` (
 	`id` text PRIMARY KEY NOT NULL,
 	`type_id` text NOT NULL,
 	`name` text NOT NULL,
-	`embedding_vec` text,
+	`embedding_vec` blob,
 	`embedding_model` text,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
@@ -61,4 +61,11 @@ CREATE TABLE `types` (
 	FOREIGN KEY (`kind_id`) REFERENCES `kinds`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `types_kind_name_unique` ON `types` (`kind_id`,`name`);
+CREATE UNIQUE INDEX `types_kind_name_unique` ON `types` (`kind_id`,`name`);--> statement-breakpoint
+CREATE VIRTUAL TABLE `entries_fts` USING fts5(
+  entry_id UNINDEXED,
+  name,
+  cue_text,
+  body_text,
+  tokenize = 'porter unicode61'
+);

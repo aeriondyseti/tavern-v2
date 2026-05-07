@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "693f86aa-e751-4c84-9db3-e5f55171c669",
+  "id": "3c1de2bb-734d-4b48-986d-fa8512fdf22b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "connections": {
@@ -205,7 +205,7 @@
         },
         "embedding_vec": {
           "name": "embedding_vec",
-          "type": "text",
+          "type": "blob",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
