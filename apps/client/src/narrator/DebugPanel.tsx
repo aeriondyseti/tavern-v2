@@ -118,7 +118,7 @@ const summarize = (e: BeatEvent) => {
                 <td>{c.bm25.toFixed(2)}</td>
                 <td>{c.embeddingSim.toFixed(2)}</td>
                 <td>{c.blended.toFixed(2)}</td>
-                <td>{c.fromBrings ? "↪" : c.selected ? "✓" : ""}</td>
+                <td>{c.selected ? "✓" : ""}</td>
               </tr>
             ))}
           </tbody>

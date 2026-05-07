@@ -40,9 +40,6 @@ export const uploadRestore = async (file: File, mode: "merge" | "replace") => {
     mode: string;
     types: { inserted: number; updated: number };
     entries: { inserted: number; updated: number };
-    facets: number;
     cues: number;
-    connections: number;
-    directionTiers: number;
   }>(r);
 };

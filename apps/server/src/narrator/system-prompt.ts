@@ -1,20 +1,11 @@
-import type { DirectionTier, SetupData } from "@tales/shared";
+import type { SetupData } from "@tales/shared";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 
 import type { Db } from "../db/client.js";
-import { anchorFacets, entries, facets, scenes, stories, types } from "../db/schema.js";
+import { anchorFacets, entries, scenes, stories, types } from "../db/schema.js";
 import { effectivePinned } from "../stories/repo.js";
 
 const STANCE = `You are the Narrator: a game-master, never a character. The user plays; you tell. Maintain that wall.`;
-
-const TIER_HEADER: Record<DirectionTier, string> = {
-  absolute: "Absolute rules:",
-  strong: "Strong guidance:",
-  normal: "Style:",
-  background: "Background:",
-};
-
-const TIER_ORDER: DirectionTier[] = ["absolute", "strong", "normal", "background"];
 
 type DirectionRendered = { id: string; name: string; line: string };
 
@@ -22,25 +13,14 @@ const renderDirections = (db: Db, ids: string[]): DirectionRendered[] => {
   if (ids.length === 0) return [];
   const entryRows = db.select().from(entries).where(inArray(entries.id, ids)).all();
   const byId = new Map(entryRows.map((r) => [r.id, r]));
-  const facetRows = db.select().from(facets).where(inArray(facets.entryId, ids)).orderBy(asc(facets.position)).all();
-  const alwaysFacetsByEntry = new Map<string, string[]>();
-  for (const f of facetRows) {
-    if (f.mode !== "always") continue;
-    const arr = alwaysFacetsByEntry.get(f.entryId) ?? [];
-    arr.push(`${f.label}: ${f.body}`);
-    alwaysFacetsByEntry.set(f.entryId, arr);
-  }
   return ids
     .map((id) => byId.get(id))
     .filter((r): r is NonNullable<typeof r> => r !== undefined)
-    .map((row) => {
-      const body = (alwaysFacetsByEntry.get(row.id) ?? []).join(" — ");
-      return {
-        id: row.id,
-        name: row.name,
-        line: body ? `- ${row.name}: ${body}` : `- ${row.name}`,
-      };
-    });
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      line: row.body.trim() ? `- ${row.name}: ${row.body.trim()}` : `- ${row.name}`,
+    }));
 };
 
 const renderAnchor = (db: Db, storyId: string, storyProse: string, sceneProse: string | null): string[] => {
@@ -79,7 +59,7 @@ const renderPinned = (db: Db, storyId: string, sceneId: string | null): PinnedRe
 
 export type ComposedSystemPrompt = {
   text: string;
-  directionsByTier: Record<DirectionTier, DirectionRendered[]>;
+  directions: DirectionRendered[];
   pinned: PinnedRendered[];
   anchorLines: string[];
 };
@@ -92,23 +72,16 @@ export const composeSystemPrompt = (
   if (!story) throw new Error(`story ${args.storyId} not found`);
   const scene = args.sceneId ? db.select().from(scenes).where(eq(scenes.id, args.sceneId)).get() : null;
 
-  const directionsByTier: Record<DirectionTier, DirectionRendered[]> = {
-    absolute: renderDirections(db, args.setup.directions.absolute),
-    strong: renderDirections(db, args.setup.directions.strong),
-    normal: renderDirections(db, args.setup.directions.normal),
-    background: renderDirections(db, args.setup.directions.background),
-  };
+  const directions = renderDirections(db, args.setup.directions);
 
   const anchorLines = renderAnchor(db, args.storyId, story.anchorProse, scene?.anchorProse ?? null);
   const pinnedRows = renderPinned(db, args.storyId, args.sceneId);
 
   const sections: string[] = [STANCE];
-  for (const tier of TIER_ORDER) {
-    const list = directionsByTier[tier];
-    if (list.length === 0) continue;
+  if (directions.length > 0) {
     sections.push("");
-    sections.push(TIER_HEADER[tier]);
-    for (const d of list) sections.push(d.line);
+    sections.push("Directions:");
+    for (const d of directions) sections.push(d.line);
   }
   if (anchorLines.length > 0) {
     sections.push("");
@@ -129,7 +102,7 @@ export const composeSystemPrompt = (
 
   return {
     text: sections.join("\n"),
-    directionsByTier,
+    directions,
     pinned: pinnedRows,
     anchorLines,
   };

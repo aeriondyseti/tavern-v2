@@ -64,9 +64,7 @@ export const Settings = () => {
     if (!file) return setRestoreMessage("Pick a file first.");
     if (
       mode === "replace" &&
-      !confirm(
-        "Replace mode wipes types, entries, facets, cues, connections, and direction tiers (kinds are preserved) before importing. Continue?",
-      )
+      !confirm("Replace mode wipes types, entries, and cues (kinds are preserved) before importing. Continue?")
     ) {
       return;
     }

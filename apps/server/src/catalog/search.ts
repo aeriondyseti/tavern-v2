@@ -2,7 +2,7 @@ import type { SearchCandidate } from "@tales/shared";
 import { inArray, sql } from "drizzle-orm";
 
 import type { Db } from "../db/client.js";
-import { connections, entries, types } from "../db/schema.js";
+import { entries, types } from "../db/schema.js";
 import { bufferToF32, cosine, embed } from "../embeddings/index.js";
 import { type Entry, getEntries } from "./repo.js";
 
@@ -14,13 +14,11 @@ export type SearchOptions = {
   threshold: number;
   keywordWeight: number;
   embeddingWeight: number;
-  bringsDepth: number;
 };
 
 export type SearchResult = {
   entries: Entry[];
   candidates: SearchCandidate[];
-  bringsAdded: string[];
 };
 
 const sanitizeFtsQuery = (q: string): string =>
@@ -34,7 +32,7 @@ const sanitizeFtsQuery = (q: string): string =>
 
 export const searchWorld = async (db: Db, opts: SearchOptions): Promise<SearchResult> => {
   const queryText = opts.query.trim();
-  if (!queryText) return { entries: [], candidates: [], bringsAdded: [] };
+  if (!queryText) return { entries: [], candidates: [] };
 
   const allowedTypeIds = resolveAllowedTypes(db, opts);
 
@@ -99,7 +97,7 @@ export const searchWorld = async (db: Db, opts: SearchOptions): Promise<SearchRe
   }
 
   if (candidateRows.length === 0) {
-    return { entries: [], candidates: [], bringsAdded: [] };
+    return { entries: [], candidates: [] };
   }
 
   const candidates: SearchCandidate[] = candidateRows
@@ -115,7 +113,6 @@ export const searchWorld = async (db: Db, opts: SearchOptions): Promise<SearchRe
         embeddingSim: sim,
         blended: opts.keywordWeight * bm25 + opts.embeddingWeight * sim,
         selected: false,
-        fromBrings: false,
       };
     });
 
@@ -129,26 +126,8 @@ export const searchWorld = async (db: Db, opts: SearchOptions): Promise<SearchRe
     selectedIds.add(c.entryId);
   }
 
-  const bringsAdded = expandBrings(db, selectedIds, opts.bringsDepth);
-  const finalIds = [...selectedIds, ...bringsAdded];
-  const hydrated = getEntries(db, finalIds);
-
-  for (const id of bringsAdded) {
-    const c = candidates.find((x) => x.entryId === id);
-    if (c) c.fromBrings = true;
-    else
-      candidates.push({
-        entryId: id,
-        name: hydrated.find((e) => e.id === id)?.name ?? id,
-        bm25: 0,
-        embeddingSim: 0,
-        blended: 0,
-        selected: true,
-        fromBrings: true,
-      });
-  }
-
-  return { entries: hydrated, candidates, bringsAdded };
+  const hydrated = getEntries(db, [...selectedIds]);
+  return { entries: hydrated, candidates };
 };
 
 const resolveAllowedTypes = (db: Db, opts: SearchOptions): Set<string> | null => {
@@ -163,28 +142,4 @@ const resolveAllowedTypes = (db: Db, opts: SearchOptions): Set<string> | null =>
     return new Set(ids);
   }
   return null;
-};
-
-const expandBrings = (db: Db, seedIds: Set<string>, depth: number): string[] => {
-  if (depth <= 0 || seedIds.size === 0) return [];
-  const visited = new Set(seedIds);
-  const added: string[] = [];
-  let frontier = [...seedIds];
-  for (let d = 0; d < depth && frontier.length > 0; d++) {
-    const next = db
-      .select({ to: connections.toEntryId })
-      .from(connections)
-      .where(inArray(connections.fromEntryId, frontier))
-      .all()
-      .map((r) => r.to);
-    const newFrontier: string[] = [];
-    for (const id of next) {
-      if (visited.has(id)) continue;
-      visited.add(id);
-      added.push(id);
-      newFrontier.push(id);
-    }
-    frontier = newFrontier;
-  }
-  return added;
 };

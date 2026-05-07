@@ -1,16 +1,14 @@
 import { create } from "zustand";
 
 import { api } from "./api.js";
-import type { DirectionTier, Entry, FacetMode, Kind, KindId, Type } from "./types.js";
+import type { Entry, Kind, KindId, Type } from "./types.js";
 
 export type EntryDraft = {
   id: string | null;
   typeId: string;
   name: string;
-  facets: { id?: string; label: string; body: string; mode: FacetMode }[];
+  body: string;
   cues: string[];
-  connections: { toEntryId: string }[];
-  tier: DirectionTier | null;
 };
 
 type State = {
@@ -99,19 +97,8 @@ export const useCatalog = create<State & Actions>((set, get) => ({
     const payload = {
       typeId: draft.typeId,
       name: draft.name,
-      facets: draft.facets.map((f, i) => ({
-        // EntryEditor uses 'tmp-...' ids only for stable React keys on new
-        // rows; never round-trip them to the server (the server assigns
-        // canonical ULIDs on insert).
-        ...(f.id && !f.id.startsWith("tmp-") ? { id: f.id } : {}),
-        label: f.label,
-        body: f.body,
-        mode: f.mode,
-        position: i,
-      })),
+      body: draft.body,
       cues: draft.cues,
-      connections: draft.connections.map((c) => ({ toEntryId: c.toEntryId, kind: "brings" as const })),
-      ...(draft.tier ? { tier: draft.tier } : {}),
     };
     const saved = draft.id ? await api.updateEntry(draft.id, payload) : await api.createEntry(payload);
     set((s) => {

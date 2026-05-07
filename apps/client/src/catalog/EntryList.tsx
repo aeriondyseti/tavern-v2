@@ -59,10 +59,7 @@ export const EntryList = () => {
                     {e.hasEmbedding ? "✓" : e.embeddingModel ? "↻" : "·"}
                   </span>
                 </div>
-                <span className="text-[11px] text-zinc-500">
-                  {t?.name}
-                  {e.tier ? ` · ${e.tier}` : ""}
-                </span>
+                <span className="text-[11px] text-zinc-500">{t?.name}</span>
               </button>
             </li>
           );

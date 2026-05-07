@@ -10,7 +10,6 @@ export const SearchRequest = z.object({
   threshold: z.number().min(0).max(1).default(0.25),
   keywordWeight: z.number().min(0).max(1).default(0.4),
   embeddingWeight: z.number().min(0).max(1).default(0.6),
-  bringsDepth: z.number().int().nonnegative().default(2),
 });
 export type SearchRequest = z.infer<typeof SearchRequest>;
 
@@ -21,7 +20,6 @@ export type SearchCandidate = {
   embeddingSim: number;
   blended: number;
   selected: boolean;
-  fromBrings: boolean;
 };
 
 export type EmbedderStatus =

@@ -6,14 +6,7 @@ export type ModelId = z.infer<typeof ModelId>;
 export const DEFAULT_MODEL: ModelId = "claude-opus-4-7";
 
 export const SetupData = z.object({
-  directions: z
-    .object({
-      absolute: z.array(z.string()).default([]),
-      strong: z.array(z.string()).default([]),
-      normal: z.array(z.string()).default([]),
-      background: z.array(z.string()).default([]),
-    })
-    .default({}),
+  directions: z.array(z.string()).default([]),
   model: z
     .object({
       id: ModelId.default(DEFAULT_MODEL),
@@ -30,7 +23,6 @@ export const SetupData = z.object({
       threshold: z.number().min(0).max(1).default(0.25),
       keyword_weight: z.number().min(0).max(1).default(0.4),
       embedding_weight: z.number().min(0).max(1).default(0.6),
-      brings_depth: z.number().int().nonnegative().default(2),
     })
     .default({}),
   tools: z

@@ -2,15 +2,7 @@ import { MODEL_OPTIONS, type ModelId, type SetupData } from "@tales/shared";
 import { useEffect, useMemo, useState } from "react";
 
 import { useCatalog } from "../catalog/store.js";
-import type { DirectionTier } from "../catalog/types.js";
-import { DIRECTION_TIERS, KIND_DIRECTION } from "../catalog/types.js";
-
-const TIER_LABEL: Record<DirectionTier, string> = {
-  absolute: "Absolute",
-  strong: "Strong",
-  normal: "Style",
-  background: "Background",
-};
+import { KIND_DIRECTION } from "../catalog/types.js";
 
 type Props = {
   value: SetupData;
@@ -19,7 +11,8 @@ type Props = {
 };
 
 export const SetupEditor = ({ value, onChange, scope }: Props) => {
-  const { entries, types } = useCatalog();
+  const entries = useCatalog((s) => s.entries);
+  const types = useCatalog((s) => s.types);
   const [draft, setDraft] = useState<SetupData>(value);
   useEffect(() => setDraft(value), [value]);
 
@@ -32,36 +25,28 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
     [entries, directionTypeIds],
   );
 
-  const allActiveIds = useMemo(
-    () => new Set(DIRECTION_TIERS.flatMap((t) => draft.directions[t]).filter((id): id is string => Boolean(id))),
-    [draft.directions],
-  );
-
+  const activeIds = useMemo(() => new Set(draft.directions), [draft.directions]);
   const inactiveDirections = useMemo(
-    () => directionEntries.filter((e) => !allActiveIds.has(e.id)).sort((a, b) => a.name.localeCompare(b.name)),
-    [directionEntries, allActiveIds],
+    () => directionEntries.filter((e) => !activeIds.has(e.id)).sort((a, b) => a.name.localeCompare(b.name)),
+    [directionEntries, activeIds],
   );
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(value);
 
-  const moveToTier = (entryId: string, tier: DirectionTier | null) => {
-    const stripped: SetupData["directions"] = {
-      absolute: draft.directions.absolute.filter((id) => id !== entryId),
-      strong: draft.directions.strong.filter((id) => id !== entryId),
-      normal: draft.directions.normal.filter((id) => id !== entryId),
-      background: draft.directions.background.filter((id) => id !== entryId),
-    };
-    const next = tier ? { ...stripped, [tier]: [...stripped[tier], entryId] } : stripped;
+  const toggleDirection = (entryId: string) => {
+    const next = activeIds.has(entryId)
+      ? draft.directions.filter((id) => id !== entryId)
+      : [...draft.directions, entryId];
     setDraft({ ...draft, directions: next });
   };
 
-  const reorderInTier = (tier: DirectionTier, fromIdx: number, toIdx: number) => {
+  const reorder = (fromIdx: number, toIdx: number) => {
     if (fromIdx === toIdx) return;
-    const list = [...draft.directions[tier]];
+    const list = [...draft.directions];
     const [moved] = list.splice(fromIdx, 1);
     if (!moved) return;
     list.splice(toIdx, 0, moved);
-    setDraft({ ...draft, directions: { ...draft.directions, [tier]: list } });
+    setDraft({ ...draft, directions: list });
   };
 
   const updateModel = <K extends keyof SetupData["model"]>(key: K, val: SetupData["model"][K]) =>
@@ -81,6 +66,7 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
         </h3>
         <div className="flex gap-2">
           <button
+            type="button"
             className="text-xs text-zinc-500 hover:text-zinc-200 disabled:opacity-50"
             disabled={!dirty}
             onClick={() => setDraft(value)}
@@ -88,6 +74,7 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
             revert
           </button>
           <button
+            type="button"
             className="bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
             disabled={!dirty}
             onClick={() => onChange(draft)}
@@ -99,62 +86,52 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
 
       <div>
         <h4 className="mb-2 text-xs uppercase tracking-wide text-zinc-500">Active Directions</h4>
-        {DIRECTION_TIERS.map((tier) => (
-          <div key={tier} className="mb-3">
-            <div className="mb-1 text-[11px] uppercase tracking-wide text-zinc-500">{TIER_LABEL[tier]}</div>
-            <ul className="space-y-1">
-              {draft.directions[tier].length === 0 && <li className="text-[11px] italic text-zinc-700">empty</li>}
-              {draft.directions[tier].map((id, i) => {
-                const e = entries.find((x) => x.id === id);
-                if (!e) return null;
-                return (
-                  <li key={id} className="flex items-center gap-1 border border-zinc-800 px-2 py-1 text-sm">
-                    <span className="flex-1 text-zinc-200">{e.name}</span>
-                    <button
-                      className="text-xs text-zinc-500 hover:text-zinc-200 disabled:opacity-30"
-                      disabled={i === 0}
-                      onClick={() => reorderInTier(tier, i, i - 1)}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      className="text-xs text-zinc-500 hover:text-zinc-200 disabled:opacity-30"
-                      disabled={i === draft.directions[tier].length - 1}
-                      onClick={() => reorderInTier(tier, i, i + 1)}
-                    >
-                      ↓
-                    </button>
-                    <select
-                      className="bg-zinc-900 text-[11px]"
-                      value={tier}
-                      onChange={(ev) => moveToTier(id, ev.target.value as DirectionTier)}
-                    >
-                      {DIRECTION_TIERS.map((t) => (
-                        <option key={t} value={t}>
-                          {TIER_LABEL[t]}
-                        </option>
-                      ))}
-                    </select>
-                    <button className="text-xs text-zinc-500 hover:text-rose-400" onClick={() => moveToTier(id, null)}>
-                      ×
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+        <ul className="space-y-1">
+          {draft.directions.length === 0 && <li className="text-[11px] italic text-zinc-700">none</li>}
+          {draft.directions.map((id, i) => {
+            const e = entries.find((x) => x.id === id);
+            if (!e) return null;
+            return (
+              <li key={id} className="flex items-center gap-1 border border-zinc-800 px-2 py-1 text-sm">
+                <span className="flex-1 text-zinc-200">{e.name}</span>
+                <button
+                  type="button"
+                  className="text-xs text-zinc-500 hover:text-zinc-200 disabled:opacity-30"
+                  disabled={i === 0}
+                  onClick={() => reorder(i, i - 1)}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="text-xs text-zinc-500 hover:text-zinc-200 disabled:opacity-30"
+                  disabled={i === draft.directions.length - 1}
+                  onClick={() => reorder(i, i + 1)}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  aria-label={`remove ${e.name}`}
+                  className="text-xs text-zinc-500 hover:text-rose-400"
+                  onClick={() => toggleDirection(id)}
+                >
+                  ×
+                </button>
+              </li>
+            );
+          })}
+        </ul>
         {inactiveDirections.length > 0 && (
-          <div>
-            <div className="mb-1 text-[11px] uppercase tracking-wide text-zinc-500">
-              Inactive (click to activate as Style)
-            </div>
+          <div className="mt-2">
+            <div className="mb-1 text-[11px] uppercase tracking-wide text-zinc-500">Inactive (click to activate)</div>
             <ul className="flex flex-wrap gap-1">
               {inactiveDirections.map((e) => (
                 <li key={e.id}>
                   <button
+                    type="button"
                     className="bg-zinc-900 px-2 py-1 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
-                    onClick={() => moveToTier(e.id, "normal")}
+                    onClick={() => toggleDirection(e.id)}
                   >
                     {e.name}
                   </button>
@@ -283,16 +260,6 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
             step={0.05}
             value={draft.retrieval.embedding_weight}
             onChange={(e) => updateRetrieval("embedding_weight", Number(e.target.value))}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-zinc-400">
-          brings depth
-          <input
-            type="number"
-            className="bg-zinc-900 px-2 py-1 text-sm"
-            min={0}
-            value={draft.retrieval.brings_depth}
-            onChange={(e) => updateRetrieval("brings_depth", Number(e.target.value))}
           />
         </label>
       </div>
