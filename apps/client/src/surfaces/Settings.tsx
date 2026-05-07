@@ -31,9 +31,9 @@ export const Settings = () => {
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, []);
 
-  if (error) return <div className="p-4 text-sm text-rose-400">Error: {error}</div>;
+  if (error) return <div className="p-4 text-sm text-ember">Error: {error}</div>;
   if (!settings || !draft || !storage) {
-    return <div className="p-4 text-sm text-zinc-500">Loading settings…</div>;
+    return <div className="p-4 text-sm text-ink-faint">Loading settings…</div>;
   }
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(settings);
@@ -133,7 +133,7 @@ export const Settings = () => {
             }}
           />
         </Field>
-        <p className="text-xs text-zinc-500">New Tales pick these up. Existing Tales keep their per-Tale Setup.</p>
+        <p className="text-xs text-ink-faint">New Tales pick these up. Existing Tales keep their per-Tale Setup.</p>
       </Section>
 
       <Section title="Embeddings">
@@ -182,19 +182,19 @@ export const Settings = () => {
                 onChange={(e) => update("embeddingApiKey", e.target.value || null)}
               />
             </Field>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-ink-faint">
               Stored in the local SQLite file. Encryption at rest is a deferred item (spec §10).
             </p>
           </>
         )}
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink-faint">
           Switching models invalidates existing embedding vectors. Run "reindex all" from the Catalog after saving.
         </p>
       </Section>
 
       <Section title="Storage">
         <Field label="db path">
-          <code className="text-zinc-400">{storage.dbPath}</code>
+          <code className="text-ink-muted">{storage.dbPath}</code>
         </Field>
         <Field label="backup">
           <button type="button" className={primaryButtonClass} onClick={downloadBackup}>
@@ -212,38 +212,38 @@ export const Settings = () => {
             restore (replace)
           </button>
         </div>
-        {restoreMessage && <p className="pl-[8.75rem] text-xs text-zinc-400">{restoreMessage}</p>}
-        <p className="pl-[8.75rem] text-xs text-zinc-500">
+        {restoreMessage && <p className="pl-[8.75rem] text-xs text-ink-muted">{restoreMessage}</p>}
+        <p className="pl-[8.75rem] text-xs text-ink-faint">
           Catalog only — Tales, Scenes, and Beats stay on this server.
         </p>
       </Section>
 
-      <footer className="sticky bottom-0 -mx-6 flex items-center gap-3 border-t border-zinc-800 bg-zinc-950/95 px-6 py-3 backdrop-blur">
+      <footer className="sticky bottom-0 -mx-6 flex items-center gap-3 border-t border-line bg-app/90 px-6 py-3 backdrop-blur-md">
         <button type="button" className={primaryButtonClass} onClick={save} disabled={!dirty || saving}>
           {saving ? "saving…" : "save"}
         </button>
         <button
           type="button"
-          className="cursor-pointer text-xs text-zinc-500 transition-colors duration-200 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+          className="cursor-pointer text-xs text-ink-faint transition-colors duration-200 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
           onClick={() => setDraft(settings)}
           disabled={!dirty}
         >
           revert
         </button>
-        {!dirty && <span className="text-xs text-zinc-600">no changes</span>}
+        {!dirty && <span className="text-xs text-ink-faint/70">no changes</span>}
       </footer>
     </div>
   );
 };
 
 const inputBase =
-  "border border-zinc-800 bg-zinc-900 px-2 py-1 text-zinc-100 outline-none transition-colors duration-200 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600";
+  "border border-line bg-app/70 px-2 py-1 text-ink outline-none transition-colors duration-200 focus:border-glow/40 focus:ring-1 focus:ring-glow/30";
 const inputClass = `w-64 ${inputBase}`;
 const inputClassWide = `w-96 ${inputBase}`;
 const primaryButtonClass =
-  "cursor-pointer whitespace-nowrap bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-900 transition-colors duration-200 hover:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-50";
+  "cursor-pointer whitespace-nowrap border border-glow/40 bg-glow/10 px-3 py-1 text-xs font-medium text-glow transition-colors duration-200 hover:border-glow/60 hover:bg-glow/20 focus:outline-none focus:ring-2 focus:ring-glow/50 focus:ring-offset-2 focus:ring-offset-app disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-glow/10";
 const secondaryButtonClass =
-  "cursor-pointer whitespace-nowrap border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-200 transition-colors duration-200 hover:border-zinc-600 hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950";
+  "cursor-pointer whitespace-nowrap border border-line-strong bg-white/[0.04] px-3 py-1 text-xs text-ink transition-colors duration-200 hover:border-glow/30 hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-glow/40 focus:ring-offset-2 focus:ring-offset-app";
 
 type FileChooserProps = {
   fileRef: React.RefObject<HTMLInputElement>;
@@ -256,7 +256,7 @@ const FileChooser = ({ fileRef, fileName, onFileChange }: FileChooserProps) => (
     <button type="button" className={secondaryButtonClass} onClick={() => fileRef.current?.click()}>
       choose file…
     </button>
-    <span className="text-xs text-zinc-500">{fileName ?? "no file selected"}</span>
+    <span className="text-xs text-ink-faint">{fileName ?? "no file selected"}</span>
     <input
       ref={fileRef}
       type="file"
@@ -269,14 +269,14 @@ const FileChooser = ({ fileRef, fileName, onFileChange }: FileChooserProps) => (
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="space-y-2">
-    <h2 className="font-serif text-base text-zinc-200">{title}</h2>
-    <div className="space-y-3 border border-zinc-800 bg-zinc-900/40 p-4">{children}</div>
+    <h2 className="font-serif text-base text-ink">{title}</h2>
+    <div className="space-y-3 border border-line bg-panel p-4 backdrop-blur-md">{children}</div>
   </section>
 );
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <label className="flex items-start gap-3">
-    <span className="w-32 shrink-0 pt-1 text-xs uppercase tracking-wide text-zinc-400">{label}</span>
+    <span className="w-32 shrink-0 pt-1 text-xs uppercase tracking-wide text-ink-muted">{label}</span>
     <span className="flex-1">{children}</span>
   </label>
 );
@@ -284,16 +284,16 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 const ProviderSection = ({ oauth }: { oauth: OauthStatus }) => (
   <Section title="Provider">
     <Field label="claude oauth">
-      <span className={oauth.state === "present" ? "text-emerald-400" : "text-rose-400"}>
+      <span className={oauth.state === "present" ? "text-moss" : "text-ember"}>
         {oauth.state === "present" ? "logged in" : "not logged in"}
       </span>
     </Field>
     <Field label="credentials">
-      <code className="text-zinc-400">{oauth.credentialsPath}</code>
+      <code className="text-ink-muted">{oauth.credentialsPath}</code>
     </Field>
     {oauth.state === "missing" && (
-      <p className="text-xs text-zinc-500">
-        Run <code className="text-zinc-300">claude login</code> in a terminal, then refresh this page.
+      <p className="text-xs text-ink-faint">
+        Run <code className="text-ink">claude login</code> in a terminal, then refresh this page.
       </p>
     )}
   </Section>

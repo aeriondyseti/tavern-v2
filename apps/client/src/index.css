@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+/* Moonlit design tokens — see docs/design.md (TBD) for the rationale.
+   Warm dark grays, near-transparent borders, gentle warm-amber accent. */
+@theme {
+  --color-app: #0b0b0e;
+  --color-panel: rgb(24 24 27 / 0.65);
+  --color-elevated: rgb(39 39 42 / 0.75);
+  --color-line: rgb(255 255 255 / 0.06);
+  --color-line-strong: rgb(255 255 255 / 0.12);
+  --color-ink: #e4e4e7;
+  --color-ink-muted: #a1a1aa;
+  --color-ink-faint: #71717a;
+  --color-glow: #fac679;
+  --color-pool: #51a0de;
+  --color-ember: #e53935;
+  --color-moss: #9ccc65;
+}
+
 html,
 body,
 #root {

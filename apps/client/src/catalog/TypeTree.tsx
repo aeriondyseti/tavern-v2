@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { NewButton } from "../ui.js";
 import { useCatalog } from "./store.js";
 import type { KindId } from "./types.js";
 
@@ -43,13 +44,7 @@ export const TypeTree = () => {
           <div key={k.id} className="border-b border-zinc-800">
             <header className="flex items-center justify-between px-3 py-2">
               <span className="font-serif text-zinc-300">{k.label}</span>
-              <button
-                type="button"
-                className="cursor-pointer whitespace-nowrap text-xs text-zinc-500 transition-colors duration-200 hover:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-600"
-                onClick={() => setAdding(k.id as KindId)}
-              >
-                + new
-              </button>
+              <NewButton label={`new ${k.label.toLowerCase()} type`} onClick={() => setAdding(k.id as KindId)} />
             </header>
             <ul>
               <li>

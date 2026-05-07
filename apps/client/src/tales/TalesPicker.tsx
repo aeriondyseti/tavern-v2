@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { NewButton } from "../ui.js";
 import { useTales } from "./store.js";
 
 export const TalesPicker = () => {
@@ -29,13 +30,7 @@ export const TalesPicker = () => {
     <aside className="flex h-full w-60 flex-col border-r border-zinc-800">
       <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2">
         <span className="font-serif text-sm text-zinc-300">Tales</span>
-        <button
-          type="button"
-          className="cursor-pointer whitespace-nowrap text-xs text-zinc-400 transition-colors duration-200 hover:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-600"
-          onClick={() => setCreating(true)}
-        >
-          + new
-        </button>
+        <NewButton label="new tale" onClick={() => setCreating(true)} />
       </header>
       <ul className="flex-1 overflow-y-auto">
         {creating && (
@@ -89,13 +84,7 @@ export const TalesPicker = () => {
         {tales.length === 0 && !creating && (
           <li className="flex flex-col items-center gap-3 p-6 text-center">
             <p className="text-xs text-zinc-500">No tales yet.</p>
-            <button
-              type="button"
-              className="cursor-pointer whitespace-nowrap border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-200 transition-colors duration-200 hover:border-zinc-600 hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
-              onClick={() => setCreating(true)}
-            >
-              + new tale
-            </button>
+            <NewButton label="new tale" text="new tale" onClick={() => setCreating(true)} />
           </li>
         )}
       </ul>
