@@ -2,15 +2,8 @@ import { asc, eq, inArray, sql } from "drizzle-orm";
 import type { DirectionTier, SetupData } from "@tavern/shared";
 
 import { type Db } from "../db/client.js";
-import {
-  anchorFacets,
-  entries,
-  facets,
-  pinned,
-  scenes,
-  tales,
-  types,
-} from "../db/schema.js";
+import { anchorFacets, entries, facets, scenes, tales, types } from "../db/schema.js";
+import { effectivePinned } from "../tales/repo.js";
 
 const STANCE = `You are the Narrator: a game-master, never a character. The user plays; you tell. Maintain that wall.`;
 
@@ -45,11 +38,14 @@ const renderDirections = (db: Db, ids: string[]): DirectionRendered[] => {
   return ids
     .map((id) => byId.get(id))
     .filter((r): r is NonNullable<typeof r> => r !== undefined)
-    .map((row) => ({
-      id: row.id,
-      name: row.name,
-      line: `- ${row.name}: ${(alwaysFacetsByEntry.get(row.id) ?? []).join(" — ") || row.name}`,
-    }));
+    .map((row) => {
+      const body = (alwaysFacetsByEntry.get(row.id) ?? []).join(" — ");
+      return {
+        id: row.id,
+        name: row.name,
+        line: body ? `- ${row.name}: ${body}` : `- ${row.name}`,
+      };
+    });
 };
 
 const renderAnchor = (
@@ -78,44 +74,21 @@ const renderAnchor = (
 
 type PinnedRendered = { entryId: string; name: string; typeName: string };
 
-const renderPinned = (
-  db: Db,
-  taleId: string,
-  sceneId: string | null,
-): PinnedRendered[] => {
-  // Scene overrides Tale per spec §7.4: if Scene has any pins, use those; else fallback.
-  const condBySceneFirst = sceneId
-    ? eq(pinned.sceneId, sceneId)
-    : eq(pinned.taleId, taleId);
-  let rows = db
-    .select({
-      entryId: pinned.entryId,
-      position: pinned.position,
-      name: entries.name,
-      typeName: types.name,
-    })
-    .from(pinned)
-    .innerJoin(entries, eq(entries.id, pinned.entryId))
-    .innerJoin(types, eq(types.id, entries.typeId))
-    .where(condBySceneFirst)
-    .orderBy(asc(pinned.position))
+const renderPinned = (db: Db, taleId: string, sceneId: string | null): PinnedRendered[] => {
+  const list = effectivePinned(db, taleId, sceneId);
+  if (list.length === 0) return [];
+  const typeIds = [...new Set(list.map((p) => p.typeId))];
+  const typeRows = db
+    .select({ id: types.id, name: types.name })
+    .from(types)
+    .where(inArray(types.id, typeIds))
     .all();
-  if (sceneId && rows.length === 0) {
-    rows = db
-      .select({
-        entryId: pinned.entryId,
-        position: pinned.position,
-        name: entries.name,
-        typeName: types.name,
-      })
-      .from(pinned)
-      .innerJoin(entries, eq(entries.id, pinned.entryId))
-      .innerJoin(types, eq(types.id, entries.typeId))
-      .where(eq(pinned.taleId, taleId))
-      .orderBy(asc(pinned.position))
-      .all();
-  }
-  return rows.map((r) => ({ entryId: r.entryId, name: r.name, typeName: r.typeName }));
+  const typeNameById = new Map(typeRows.map((t) => [t.id, t.name]));
+  return list.map((p) => ({
+    entryId: p.entryId,
+    name: p.entryName,
+    typeName: typeNameById.get(p.typeId) ?? "",
+  }));
 };
 
 export type ComposedSystemPrompt = {

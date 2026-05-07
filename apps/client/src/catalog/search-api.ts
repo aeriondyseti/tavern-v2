@@ -1,5 +1,6 @@
 import type { EmbedderStatus, SearchCandidate, SearchRequest } from "@tavern/shared";
 
+import { consumeSseStream } from "../api/util.js";
 import type { Entry } from "./types.js";
 
 export type { EmbedderStatus, SearchCandidate, SearchRequest };
@@ -37,51 +38,15 @@ export type ReindexEvent =
   | { type: "done" }
   | { type: "error"; message: string };
 
-// Hand-rolled SSE consumer because the reindex endpoint is POST and
-// browser EventSource is GET-only.
-export const streamReindex = (onEvent: (e: ReindexEvent) => void): (() => void) => {
-  const ac = new AbortController();
-  void (async () => {
+export const streamReindex = (onEvent: (e: ReindexEvent) => void): (() => void) =>
+  consumeSseStream("/api/reindex", { method: "POST" }, (event, data) => {
+    let parsed: { message?: string; total?: number; done?: number } = {};
     try {
-      const r = await fetch("/api/reindex", { method: "POST", signal: ac.signal });
-      if (!r.ok || !r.body) {
-        onEvent({ type: "error", message: `${r.status} ${r.statusText}` });
-        return;
-      }
-      const reader = r.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        let idx;
-        while ((idx = buf.indexOf("\n\n")) !== -1) {
-          const chunk = buf.slice(0, idx);
-          buf = buf.slice(idx + 2);
-          const lines = chunk.split("\n");
-          let event = "message";
-          let data = "";
-          for (const line of lines) {
-            if (line.startsWith("event:")) event = line.slice(6).trim();
-            else if (line.startsWith("data:")) data += line.slice(5).trim();
-          }
-          if (!data) continue;
-          try {
-            const parsed = JSON.parse(data);
-            if (event === "progress") onEvent({ type: "progress", ...parsed });
-            else if (event === "done") onEvent({ type: "done" });
-            else if (event === "error") onEvent({ type: "error", message: parsed.message ?? "error" });
-          } catch {
-            // malformed; skip
-          }
-        }
-      }
-    } catch (e) {
-      if ((e as Error).name !== "AbortError") {
-        onEvent({ type: "error", message: e instanceof Error ? e.message : String(e) });
-      }
+      parsed = JSON.parse(data);
+    } catch {
+      return;
     }
-  })();
-  return () => ac.abort();
-};
+    if (event === "progress") onEvent({ type: "progress", ...(parsed as object) } as ReindexEvent);
+    else if (event === "done") onEvent({ type: "done" });
+    else if (event === "error") onEvent({ type: "error", message: parsed.message ?? "error" });
+  });

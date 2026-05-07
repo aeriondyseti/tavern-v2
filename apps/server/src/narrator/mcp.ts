@@ -1,13 +1,13 @@
 import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { SearchCallRecord, SetupData } from "@tavern/shared";
 
 import { type Db } from "../db/client.js";
-import { entries, facets, scenes, tales } from "../db/schema.js";
+import { entries, facets } from "../db/schema.js";
 import * as repo from "../catalog/repo.js";
 import { searchWorld } from "../catalog/search.js";
-import { listPinnedForScope } from "../tales/repo.js";
+import { effectivePinned } from "../tales/repo.js";
 
 export type ToolRecorder = {
   pushSearchCall: (rec: SearchCallRecord) => void;
@@ -65,20 +65,22 @@ export const buildNarratorMcpServer = (db: Db, ctx: NarratorContext) =>
       ),
       tool(
         "get_entry",
-        "Fetch a specific entry by id or by exact name. Returns its facets, cues, and brings connections.",
+        "Fetch a specific entry by id or by name (case-insensitive). When passing name, optionally constrain by type id.",
         {
           id: z.string().optional(),
           name: z.string().optional(),
+          type: z.string().optional().describe("type id to constrain a name lookup"),
         },
         async (args) => {
           let entry = null as ReturnType<typeof repo.getEntry>;
-          if (args.id) entry = repo.getEntry(db, args.id);
-          else if (args.name) {
-            const row = db
-              .select()
-              .from(entries)
-              .where(eq(entries.name, args.name))
-              .get();
+          if (args.id) {
+            entry = repo.getEntry(db, args.id);
+          } else if (args.name) {
+            const nameMatch = sql`lower(${entries.name}) = lower(${args.name})`;
+            const where = args.type
+              ? and(nameMatch, eq(entries.typeId, args.type))
+              : nameMatch;
+            const row = db.select().from(entries).where(where).get();
             if (row) entry = repo.getEntry(db, row.id);
           }
           if (!entry) return textResult({ error: "not found" });
@@ -138,17 +140,7 @@ export const buildNarratorMcpServer = (db: Db, ctx: NarratorContext) =>
         "List the entries pinned for this Tale (or this Scene, if Scene-level pins are set).",
         {},
         async () => {
-          const tale = db.select().from(tales).where(eq(tales.id, ctx.taleId)).get();
-          if (!tale) return textResult({ pinned: [] });
-          const scene = ctx.sceneId
-            ? db.select().from(scenes).where(eq(scenes.id, ctx.sceneId)).get()
-            : null;
-          let list = scene
-            ? listPinnedForScope(db, { kind: "scene", id: scene.id })
-            : [];
-          if (list.length === 0) {
-            list = listPinnedForScope(db, { kind: "tale", id: tale.id });
-          }
+          const list = effectivePinned(db, ctx.taleId, ctx.sceneId);
           return textResult({
             pinned: list.map((p) => ({
               id: p.entryId,

@@ -84,6 +84,21 @@ const sceneSummary = (row: SceneRow, hasAdjustments: boolean): SceneSummary => (
 export const listPinnedForScope = (db: Db, scope: PinnedScope): PinnedEntry[] =>
   loadPinnedFor(db, scope);
 
+// Spec §7.4: Scene pins override Tale pins. If the active Scene has any pins,
+// only those render. If the Scene has none (or no Scene is active), fall back
+// to the Tale's pins.
+export const effectivePinned = (
+  db: Db,
+  taleId: string,
+  sceneId: string | null,
+): PinnedEntry[] => {
+  if (sceneId) {
+    const scenePins = loadPinnedFor(db, { kind: "scene", id: sceneId });
+    if (scenePins.length > 0) return scenePins;
+  }
+  return loadPinnedFor(db, { kind: "tale", id: taleId });
+};
+
 const loadPinnedFor = (db: Db, scope: PinnedScope): PinnedEntry[] => {
   const rows = db
     .select({

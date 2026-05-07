@@ -1,4 +1,5 @@
-import { asc, eq, max, sql } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
+import { max } from "drizzle-orm";
 import {
   newId,
   type Beat,
@@ -111,20 +112,32 @@ export const writeTranscript = (
   },
 ): BeatTranscript => {
   const id = newId();
+  const altIndex = args.altIndex ?? -1;
+  const createdAt = Date.now();
   db.insert(beatTranscripts)
     .values({
       id,
       beatId: args.beatId,
-      altIndex: args.altIndex ?? -1,
+      altIndex,
       requestBody: args.requestBody,
       events: args.events,
       searchCalls: args.searchCalls,
       model: args.model,
       durationMs: args.durationMs,
+      createdAt,
     })
     .run();
-  const row = db.select().from(beatTranscripts).where(eq(beatTranscripts.id, id)).get();
-  return transcriptToDto(row!);
+  return {
+    id,
+    beatId: args.beatId,
+    altIndex,
+    requestBody: args.requestBody,
+    events: args.events,
+    searchCalls: args.searchCalls,
+    model: args.model,
+    durationMs: args.durationMs,
+    createdAt,
+  };
 };
 
 export const getTranscriptsForBeat = (db: Db, beatId: string): BeatTranscript[] => {
@@ -144,14 +157,15 @@ export const recentHistory = (
 ): { role: "user" | "assistant"; content: string }[] => {
   if (windowSize <= 0) return [];
   const rows = db
-    .select()
+    .select({ playerInput: beats.playerInput, narratorOutput: beats.narratorOutput })
     .from(beats)
-    .where(sql`${beats.sceneId} = ${sceneId} AND ${beats.status} = 'complete'`)
-    .orderBy(asc(beats.position), asc(beats.createdAt))
-    .all();
-  const tail = rows.slice(-windowSize);
+    .where(and(eq(beats.sceneId, sceneId), eq(beats.status, "complete")))
+    .orderBy(desc(beats.position), desc(beats.createdAt))
+    .limit(windowSize)
+    .all()
+    .reverse();
   const out: { role: "user" | "assistant"; content: string }[] = [];
-  for (const r of tail) {
+  for (const r of rows) {
     out.push({ role: "user", content: r.playerInput });
     if (r.narratorOutput) out.push({ role: "assistant", content: r.narratorOutput });
   }

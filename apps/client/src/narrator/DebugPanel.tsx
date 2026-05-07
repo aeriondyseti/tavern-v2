@@ -21,12 +21,9 @@ export const DebugPanel = ({ beatId }: Props) => {
 
   const liveEvents = live.events;
   const transcript = transcripts?.[0] ?? null;
-  const events: BeatEvent[] =
-    liveEvents.length > 0 && live.cancel
-      ? liveEvents
-      : transcript
-        ? transcript.events
-        : liveEvents;
+  const events: BeatEvent[] = live.streaming
+    ? liveEvents
+    : (transcript?.events ?? liveEvents);
   const systemPrompt = live.systemPrompt ?? findSystemPrompt(events);
   const requestBody = transcript?.requestBody ?? findRequestBuilt(events);
 

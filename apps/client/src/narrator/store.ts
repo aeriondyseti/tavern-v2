@@ -9,7 +9,7 @@ export type LiveStreamState = {
   thinking: string;
   events: BeatEvent[];
   systemPrompt: string | null;
-  cancel: (() => void) | null;
+  streaming: boolean;
 };
 
 type State = {
@@ -31,8 +31,10 @@ const emptyLive = (): LiveStreamState => ({
   thinking: "",
   events: [],
   systemPrompt: null,
-  cancel: null,
+  streaming: false,
 });
+
+let _liveCancel: (() => void) | null = null;
 
 export const useNarrator = create<State & Actions>((set, get) => ({
   bySceneId: {},
@@ -50,12 +52,9 @@ export const useNarrator = create<State & Actions>((set, get) => ({
   },
 
   startBeat: async (sceneId, playerInput) => {
-    if (get().live.cancel) return;
-    set({
-      live: { ...emptyLive(), cancel: () => undefined },
-      error: null,
-    });
-    const cancel = streamBeat(sceneId, playerInput, (event) => {
+    if (get().live.streaming) return;
+    set({ live: { ...emptyLive(), streaming: true }, error: null });
+    _liveCancel = streamBeat(sceneId, playerInput, (event) => {
       set((s) => {
         const live = { ...s.live, events: [...s.live.events, event] };
         if (event.type === "beat_started") live.beatId = event.beatId;
@@ -63,21 +62,22 @@ export const useNarrator = create<State & Actions>((set, get) => ({
         else if (event.type === "text_delta") live.text += event.text;
         else if (event.type === "thinking_delta") live.thinking += event.text;
         else if (event.type === "done") {
+          _liveCancel = null;
           void get().loadBeats(sceneId);
           return { live: emptyLive() };
         } else if (event.type === "error") {
+          _liveCancel = null;
           void get().loadBeats(sceneId);
           return { live: emptyLive(), error: event.message };
         }
         return { live };
       });
     });
-    set((s) => ({ live: { ...s.live, cancel } }));
   },
 
   cancelLive: () => {
-    const c = get().live.cancel;
-    if (c) c();
+    if (_liveCancel) _liveCancel();
+    _liveCancel = null;
     set({ live: emptyLive() });
   },
 

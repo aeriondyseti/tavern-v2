@@ -27,12 +27,13 @@ export type RunResult = {
 };
 
 const NARRATOR_MCP_PREFIX = "mcp__tavern-catalog__";
-const NARRATOR_TOOL_NAMES = [
-  `${NARRATOR_MCP_PREFIX}search_world`,
-  `${NARRATOR_MCP_PREFIX}get_entry`,
-  `${NARRATOR_MCP_PREFIX}list_active_directions`,
-  `${NARRATOR_MCP_PREFIX}list_pinned`,
-];
+
+const TOOL_NAME_BY_FLAG: Record<keyof SetupData["tools"], string> = {
+  search_world: `${NARRATOR_MCP_PREFIX}search_world`,
+  get_entry: `${NARRATOR_MCP_PREFIX}get_entry`,
+  list_active_directions: `${NARRATOR_MCP_PREFIX}list_active_directions`,
+  list_pinned: `${NARRATOR_MCP_PREFIX}list_pinned`,
+};
 
 const FILE_AND_BASH_TOOLS = [
   "Bash",
@@ -45,21 +46,18 @@ const FILE_AND_BASH_TOOLS = [
   "WebSearch",
 ];
 
-const ALLOWED_TOOLS_FROM_SETUP = (setup: SetupData): string[] => {
-  const allowed: string[] = [];
-  if (setup.tools.search_world) allowed.push(`${NARRATOR_MCP_PREFIX}search_world`);
-  if (setup.tools.get_entry) allowed.push(`${NARRATOR_MCP_PREFIX}get_entry`);
-  if (setup.tools.list_active_directions)
-    allowed.push(`${NARRATOR_MCP_PREFIX}list_active_directions`);
-  if (setup.tools.list_pinned) allowed.push(`${NARRATOR_MCP_PREFIX}list_pinned`);
-  return allowed;
-};
+const allowedToolsFromSetup = (setup: SetupData): string[] =>
+  (Object.keys(TOOL_NAME_BY_FLAG) as (keyof SetupData["tools"])[])
+    .filter((flag) => setup.tools[flag])
+    .map((flag) => TOOL_NAME_BY_FLAG[flag]);
 
 const renderHistoryAsPrompt = (
   history: RunNarratorArgs["history"],
   playerInput: string,
 ): string => {
-  const lines = history.map((m) => `${m.role === "user" ? "Player" : "Narrator"}: ${m.content}`);
+  const lines = history.map(
+    (m) => `${m.role === "user" ? "Player" : "Narrator"}: ${m.content}`,
+  );
   lines.push(`Player: ${playerInput}`);
   return lines.join("\n\n");
 };
@@ -77,9 +75,18 @@ export const runNarrator = async (
     },
   };
 
+  let doneSent = false;
   const emit = async (e: BeatEvent) => {
+    if (e.type === "done") {
+      if (doneSent) return;
+      doneSent = true;
+    }
     events.push(e);
-    await args.onEvent(e);
+    try {
+      await args.onEvent(e);
+    } catch {
+      // SSE stream closed; swallow so cleanup keeps running.
+    }
   };
 
   const mcp = buildNarratorMcpServer(db, {
@@ -90,13 +97,13 @@ export const runNarrator = async (
   });
 
   const promptString = renderHistoryAsPrompt(args.history, args.playerInput);
-
+  const allowedTools = allowedToolsFromSetup(args.setup);
   const requestBody = {
     model: args.setup.model.id,
     systemPrompt: args.systemPrompt,
     history: args.history,
     playerInput: args.playerInput,
-    allowedTools: ALLOWED_TOOLS_FROM_SETUP(args.setup),
+    allowedTools,
     disallowedTools: FILE_AND_BASH_TOOLS,
   };
   await emit({ type: "request_built", body: requestBody, ts: Date.now() });
@@ -114,7 +121,7 @@ export const runNarrator = async (
         model: args.setup.model.id,
         systemPrompt: args.systemPrompt,
         mcpServers: { "tavern-catalog": mcp },
-        allowedTools: NARRATOR_TOOL_NAMES,
+        allowedTools,
         disallowedTools: FILE_AND_BASH_TOOLS,
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
@@ -160,7 +167,11 @@ export const runNarrator = async (
         const content = message.message.content;
         if (typeof content === "string") continue;
         for (const block of content) {
-          if (typeof block === "object" && block !== null && (block as { type?: string }).type === "tool_result") {
+          if (
+            typeof block === "object" &&
+            block !== null &&
+            (block as { type?: string }).type === "tool_result"
+          ) {
             const tr = block as { tool_use_id: string; content: unknown };
             const matched = pendingTool.get(tr.tool_use_id);
             const lastSearch =
@@ -177,9 +188,12 @@ export const runNarrator = async (
           }
         }
       } else if (message.type === "result") {
-        if (message.subtype !== "success" || message.is_error) {
+        if (message.subtype !== "success") {
           status = "error";
-          errorMessage = message.subtype !== "success" ? message.subtype : "result error";
+          errorMessage = message.subtype;
+        } else if (message.is_error) {
+          status = "error";
+          errorMessage = message.result || "result error";
         }
       }
     }

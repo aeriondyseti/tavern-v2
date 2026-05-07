@@ -14,11 +14,11 @@ export const BeatStream = ({ sceneId, sceneName }: Props) => {
   }, [sceneId, loadBeats]);
 
   const beats = bySceneId[sceneId] ?? [];
-  const streaming = live.cancel !== null;
+  const streaming = live.streaming;
 
   useEffect(() => {
-    tailRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [beats.length, live.text]);
+    tailRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+  }, [beats.length, live.text, live.thinking]);
 
   const submit = async () => {
     const trimmed = input.trim();
