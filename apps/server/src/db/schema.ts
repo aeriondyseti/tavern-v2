@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { blob, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { blob, check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 import type {
   ConnectionKind,
@@ -127,9 +127,99 @@ export const directionTier = sqliteTable("direction_tier", {
   tier: text("tier", { enum: DIRECTION_TIERS }).notNull().default("normal"),
 });
 
+export const SETUP_SCOPES = ["tale", "scene"] as const;
+export type SetupScope = (typeof SETUP_SCOPES)[number];
+
+export const setups = sqliteTable("setups", {
+  id: text("id").primaryKey(),
+  scope: text("scope", { enum: SETUP_SCOPES }).notNull(),
+  data: text("data").notNull(),
+});
+
+export const tales = sqliteTable("tales", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  anchorProse: text("anchor_prose").notNull().default(""),
+  setupId: text("setup_id")
+    .notNull()
+    .references(() => setups.id),
+  activeSceneId: text("active_scene_id"),
+  createdAt: integer("created_at")
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at")
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});
+
+export const scenes = sqliteTable(
+  "scenes",
+  {
+    id: text("id").primaryKey(),
+    taleId: text("tale_id")
+      .notNull()
+      .references(() => tales.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    anchorProse: text("anchor_prose").notNull().default(""),
+    adjustmentsId: text("adjustments_id").references(() => setups.id),
+    position: integer("position").notNull().default(0),
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => ({
+    taleIdx: index("scenes_tale_idx").on(t.taleId),
+  }),
+);
+
+export const pinned = sqliteTable(
+  "pinned",
+  {
+    id: text("id").primaryKey(),
+    taleId: text("tale_id").references(() => tales.id, { onDelete: "cascade" }),
+    sceneId: text("scene_id").references(() => scenes.id, { onDelete: "cascade" }),
+    entryId: text("entry_id")
+      .notNull()
+      .references(() => entries.id, { onDelete: "cascade" }),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => ({
+    taleIdx: index("pinned_tale_idx").on(t.taleId),
+    sceneIdx: index("pinned_scene_idx").on(t.sceneId),
+    scopeCheck: check(
+      "pinned_scope_check",
+      sql`${t.taleId} IS NOT NULL OR ${t.sceneId} IS NOT NULL`,
+    ),
+  }),
+);
+
+export const anchorFacets = sqliteTable(
+  "anchor_facets",
+  {
+    id: text("id").primaryKey(),
+    taleId: text("tale_id")
+      .notNull()
+      .references(() => tales.id, { onDelete: "cascade" }),
+    sceneId: text("scene_id").references(() => scenes.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    body: text("body").notNull().default(""),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => ({
+    taleIdx: index("anchor_facets_tale_idx").on(t.taleId),
+    sceneIdx: index("anchor_facets_scene_idx").on(t.sceneId),
+  }),
+);
+
 export type EntryRow = typeof entries.$inferSelect;
 export type FacetRow = typeof facets.$inferSelect;
 export type CueRow = typeof cues.$inferSelect;
 export type ConnectionRow = typeof connections.$inferSelect;
 export type TypeRow = typeof types.$inferSelect;
 export type KindRow = typeof kinds.$inferSelect;
+export type TaleRow = typeof tales.$inferSelect;
+export type SceneRow = typeof scenes.$inferSelect;
+export type SetupRow = typeof setups.$inferSelect;
+export type PinnedRow = typeof pinned.$inferSelect;
+export type AnchorFacetRow = typeof anchorFacets.$inferSelect;
