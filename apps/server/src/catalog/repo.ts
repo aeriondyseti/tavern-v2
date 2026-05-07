@@ -113,6 +113,14 @@ export const getEntry = (db: Db, id: string): Entry | null => {
   return hydrateEntries(db, [row])[0] ?? null;
 };
 
+export const getEntries = (db: Db, ids: string[]): Entry[] => {
+  if (ids.length === 0) return [];
+  const rows = db.select().from(entries).where(inArray(entries.id, ids)).all();
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const ordered = ids.map((id) => byId.get(id)).filter((r): r is typeof rows[number] => r !== undefined);
+  return hydrateEntries(db, ordered);
+};
+
 const hydrateEntries = (db: Db, rows: (typeof entries.$inferSelect)[]): Entry[] => {
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);

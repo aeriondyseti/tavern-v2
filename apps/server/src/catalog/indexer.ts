@@ -6,7 +6,7 @@ import { embed, f32ToBuffer } from "../embeddings/index.js";
 
 let _queue: Promise<unknown> = Promise.resolve();
 const enqueue = <T>(task: () => Promise<T>): Promise<T> => {
-  const next = _queue.then(task, task);
+  const next = _queue.then(task);
   _queue = next.catch(() => undefined);
   return next;
 };

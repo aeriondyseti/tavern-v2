@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 
 import { env, pipeline, type FeatureExtractionPipeline } from "@huggingface/transformers";
+import type { EmbedderStatus } from "@tavern/shared";
 
 import { TRANSFORMERS_CACHE } from "../config.js";
 
@@ -16,11 +17,7 @@ type ProgressEvent =
   | { status: "progress"; file: string; progress: number; loaded: number; total: number }
   | { status: "ready"; task: string; model: string };
 
-export type EmbedderStatus =
-  | { state: "idle" }
-  | { state: "loading"; model: string; file?: string; progress?: number }
-  | { state: "ready"; model: string }
-  | { state: "error"; model: string; message: string };
+export type { EmbedderStatus };
 
 let _pipe: FeatureExtractionPipeline | null = null;
 let _pendingLoad: Promise<FeatureExtractionPipeline> | null = null;

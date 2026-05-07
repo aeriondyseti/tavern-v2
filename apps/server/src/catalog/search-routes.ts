@@ -1,23 +1,11 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import { z } from "zod";
-import { KindId } from "@tavern/shared";
+import { SearchRequest } from "@tavern/shared";
 
 import { type Db } from "../db/client.js";
 import { getEmbedderStatus, onEmbedderStatus } from "../embeddings/index.js";
 import { reindexAll, type ReindexProgress } from "./indexer.js";
 import { searchWorld } from "./search.js";
-
-const SearchBody = z.object({
-  query: z.string().min(1),
-  types: z.array(z.string()).optional(),
-  kindId: KindId.optional(),
-  maxResults: z.number().int().positive().default(8),
-  threshold: z.number().min(0).max(1).default(0.25),
-  keywordWeight: z.number().min(0).max(1).default(0.4),
-  embeddingWeight: z.number().min(0).max(1).default(0.6),
-  bringsDepth: z.number().int().nonnegative().default(2),
-});
 
 let _reindexInFlight = false;
 
@@ -25,7 +13,7 @@ export const buildSearchRoutes = (db: Db) => {
   const r = new Hono();
 
   r.post("/search", async (c) => {
-    const body = SearchBody.safeParse(await c.req.json());
+    const body = SearchRequest.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
     const result = await searchWorld(db, body.data);
     return c.json(result);
@@ -36,18 +24,25 @@ export const buildSearchRoutes = (db: Db) => {
   r.get("/embeddings/status/stream", (c) =>
     streamSSE(c, async (stream) => {
       await stream.writeSSE({ event: "status", data: JSON.stringify(getEmbedderStatus()) });
-      const off = onEmbedderStatus((s) => {
-        void stream.writeSSE({ event: "status", data: JSON.stringify(s) });
+      await new Promise<void>((resolve) => {
+        const off = onEmbedderStatus((s) => {
+          void stream.writeSSE({ event: "status", data: JSON.stringify(s) });
+        });
+        stream.onAbort(() => {
+          off();
+          resolve();
+        });
       });
-      stream.onAbort(off);
-      await new Promise<void>(() => {});
     }),
   );
 
   r.post("/reindex", (c) =>
     streamSSE(c, async (stream) => {
       if (_reindexInFlight) {
-        await stream.writeSSE({ event: "error", data: JSON.stringify({ message: "reindex already running" }) });
+        await stream.writeSSE({
+          event: "error",
+          data: JSON.stringify({ message: "reindex already running" }),
+        });
         return;
       }
       _reindexInFlight = true;

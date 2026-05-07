@@ -8,6 +8,8 @@ import { buildApp } from "./server.js";
 
 const db = initDb();
 
+// Preload synchronously: lazy-loading after serve() interferes with
+// transformers.js's fetch and reliably fails getModelFile on first call.
 console.log("loading embedder…");
 try {
   await loadLocalEmbedder();

@@ -1,9 +1,10 @@
 import { inArray, sql } from "drizzle-orm";
+import type { SearchCandidate } from "@tavern/shared";
 
 import { type Db } from "../db/client.js";
 import { connections, entries, types } from "../db/schema.js";
 import { bufferToF32, cosine, embed } from "../embeddings/index.js";
-import { type Entry, getEntry } from "./repo.js";
+import { type Entry, getEntries } from "./repo.js";
 
 export type SearchOptions = {
   query: string;
@@ -14,16 +15,6 @@ export type SearchOptions = {
   keywordWeight: number;
   embeddingWeight: number;
   bringsDepth: number;
-};
-
-export type SearchCandidate = {
-  entryId: string;
-  name: string;
-  bm25: number;
-  embeddingSim: number;
-  blended: number;
-  selected: boolean;
-  fromBrings: boolean;
 };
 
 export type SearchResult = {
@@ -49,57 +40,85 @@ export const searchWorld = async (db: Db, opts: SearchOptions): Promise<SearchRe
 
   const ftsQuery = sanitizeFtsQuery(queryText);
   const ftsRows: { entry_id: string; bm25: number }[] = ftsQuery
-    ? (db
-        .all(
-          sql`SELECT entry_id, bm25(entries_fts) AS bm25 FROM entries_fts WHERE entries_fts MATCH ${ftsQuery}`,
-        ) as { entry_id: string; bm25: number }[])
+    ? (db.all(
+        sql`SELECT entry_id, bm25(entries_fts) AS bm25 FROM entries_fts WHERE entries_fts MATCH ${ftsQuery}`,
+      ) as { entry_id: string; bm25: number }[])
     : [];
 
   const queryEmbedding = await embed(queryText)
     .then((r) => r.vec)
     .catch(() => null);
 
-  const candidateSet = new Set<string>(ftsRows.map((r) => r.entry_id));
-  if (queryEmbedding && candidateSet.size < opts.maxResults * 4) {
-    const embRows = db
-      .select({ id: entries.id })
+  const ftsRowsByEntry = new Map(ftsRows.map((r) => [r.entry_id, r.bm25]));
+  const candidateRows: (typeof entries.$inferSelect)[] = [];
+  const seen = new Set<string>();
+
+  // Track the largest |bm25| we'll see so we can normalize to [0,1]. SQLite
+  // FTS5 bm25() returns negative values (lower = more relevant) and the
+  // magnitude depends on the corpus + token rarity, so we can't assume a
+  // fixed scale.
+  let maxBm25Magnitude = 0;
+  for (const r of ftsRows) {
+    const mag = Math.abs(r.bm25);
+    if (mag > maxBm25Magnitude) maxBm25Magnitude = mag;
+  }
+
+  if (ftsRows.length > 0) {
+    const ftsHitRows = db
+      .select()
+      .from(entries)
+      .where(inArray(entries.id, ftsRows.map((r) => r.entry_id)))
+      .all();
+    for (const row of ftsHitRows) {
+      candidateRows.push(row);
+      seen.add(row.id);
+    }
+  }
+
+  // Embedding-fallback scan: only when FTS alone can't supply enough candidates.
+  // Use a streaming scan instead of inArray-on-thousands-of-ids (SQLite's 999
+  // bound parameter limit) since we'd otherwise materialize every embedded
+  // entry's id just to feed it back as IN (?,?,?,...).
+  if (queryEmbedding && candidateRows.length < opts.maxResults) {
+    const allEmbedded = db
+      .select()
       .from(entries)
       .where(sql`${entries.embeddingVec} IS NOT NULL`)
       .all();
-    for (const r of embRows) candidateSet.add(r.id);
+    for (const row of allEmbedded) {
+      if (!seen.has(row.id)) {
+        candidateRows.push(row);
+        seen.add(row.id);
+      }
+    }
   }
-  if (candidateSet.size === 0) {
+
+  if (candidateRows.length === 0) {
     return { entries: [], candidates: [], bringsAdded: [] };
   }
 
-  const candidateIds = [...candidateSet];
-  let entryRows = db.select().from(entries).where(inArray(entries.id, candidateIds)).all();
-  if (allowedTypeIds) {
-    entryRows = entryRows.filter((r) => allowedTypeIds.has(r.typeId));
-  }
-
-  const bm25ByEntry = new Map(ftsRows.map((r) => [r.entry_id, r.bm25]));
-  const maxBm25Magnitude =
-    [...bm25ByEntry.values()].reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1;
-
-  const candidates: SearchCandidate[] = entryRows.map((row) => {
-    const rawBm25 = bm25ByEntry.get(row.id);
-    const bm25 = rawBm25 === undefined ? 0 : Math.abs(rawBm25) / maxBm25Magnitude;
-    const sim =
-      queryEmbedding && row.embeddingVec
-        ? cosine(queryEmbedding, bufferToF32(row.embeddingVec))
-        : 0;
-    const blended = opts.keywordWeight * bm25 + opts.embeddingWeight * sim;
-    return {
-      entryId: row.id,
-      name: row.name,
-      bm25,
-      embeddingSim: sim,
-      blended,
-      selected: false,
-      fromBrings: false,
-    };
-  });
+  const candidates: SearchCandidate[] = candidateRows
+    .filter((row) => !allowedTypeIds || allowedTypeIds.has(row.typeId))
+    .map((row) => {
+      const rawBm25 = ftsRowsByEntry.get(row.id);
+      const bm25 =
+        rawBm25 === undefined || maxBm25Magnitude === 0
+          ? 0
+          : Math.abs(rawBm25) / maxBm25Magnitude;
+      const sim =
+        queryEmbedding && row.embeddingVec
+          ? cosine(queryEmbedding, bufferToF32(row.embeddingVec))
+          : 0;
+      return {
+        entryId: row.id,
+        name: row.name,
+        bm25,
+        embeddingSim: sim,
+        blended: opts.keywordWeight * bm25 + opts.embeddingWeight * sim,
+        selected: false,
+        fromBrings: false,
+      };
+    });
 
   candidates.sort((a, b) => b.blended - a.blended);
 
@@ -112,11 +131,8 @@ export const searchWorld = async (db: Db, opts: SearchOptions): Promise<SearchRe
   }
 
   const bringsAdded = expandBrings(db, selectedIds, opts.bringsDepth);
-
   const finalIds = [...selectedIds, ...bringsAdded];
-  const hydrated = finalIds
-    .map((id) => getEntry(db, id))
-    .filter((e): e is Entry => e !== null);
+  const hydrated = getEntries(db, finalIds);
 
   for (const id of bringsAdded) {
     const c = candidates.find((x) => x.entryId === id);

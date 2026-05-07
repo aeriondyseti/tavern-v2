@@ -1,38 +1,13 @@
-import type { KindId } from "@tavern/shared";
+import type { EmbedderStatus, SearchCandidate, SearchRequest } from "@tavern/shared";
 
 import type { Entry } from "./types.js";
 
-export type SearchCandidate = {
-  entryId: string;
-  name: string;
-  bm25: number;
-  embeddingSim: number;
-  blended: number;
-  selected: boolean;
-  fromBrings: boolean;
-};
+export type { EmbedderStatus, SearchCandidate, SearchRequest };
 
 export type SearchResult = {
   entries: Entry[];
   candidates: SearchCandidate[];
   bringsAdded: string[];
-};
-
-export type EmbedderStatus =
-  | { state: "idle" }
-  | { state: "loading"; model: string; file?: string; progress?: number }
-  | { state: "ready"; model: string }
-  | { state: "error"; model: string; message: string };
-
-export type SearchRequest = {
-  query: string;
-  types?: string[];
-  kindId?: KindId;
-  maxResults?: number;
-  threshold?: number;
-  keywordWeight?: number;
-  embeddingWeight?: number;
-  bringsDepth?: number;
 };
 
 export const search = async (req: SearchRequest): Promise<SearchResult> => {
@@ -52,10 +27,18 @@ export const fetchEmbedderStatus = async (): Promise<EmbedderStatus> => {
 };
 
 export type ReindexEvent =
-  | { type: "progress"; total: number; done: number; current?: { id: string; name: string }; errors: { id: string; name: string; message: string }[] }
+  | {
+      type: "progress";
+      total: number;
+      done: number;
+      current?: { id: string; name: string };
+      errors: { id: string; name: string; message: string }[];
+    }
   | { type: "done" }
   | { type: "error"; message: string };
 
+// Hand-rolled SSE consumer because the reindex endpoint is POST and
+// browser EventSource is GET-only.
 export const streamReindex = (onEvent: (e: ReindexEvent) => void): (() => void) => {
   const ac = new AbortController();
   void (async () => {
@@ -90,7 +73,7 @@ export const streamReindex = (onEvent: (e: ReindexEvent) => void): (() => void) 
             else if (event === "done") onEvent({ type: "done" });
             else if (event === "error") onEvent({ type: "error", message: parsed.message ?? "error" });
           } catch {
-            // ignore malformed event
+            // malformed; skip
           }
         }
       }
