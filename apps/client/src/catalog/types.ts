@@ -1,12 +1,23 @@
-export const KIND_DIRECTION = "direction";
-export const KIND_WORLD = "world";
-export type KindId = "direction" | "world";
+export {
+  ConnectionKind,
+  DirectionTier,
+  FacetMode,
+  KIND_DIRECTION,
+  KIND_WORLD,
+  KindId,
+} from "@tavern/shared";
 
-export const FACET_MODES = ["always", "cue"] as const;
-export type FacetMode = (typeof FACET_MODES)[number];
+import type { ConnectionKind, DirectionTier, FacetMode, KindId } from "@tavern/shared";
 
-export const DIRECTION_TIERS = ["absolute", "strong", "normal", "background"] as const;
-export type DirectionTier = (typeof DIRECTION_TIERS)[number];
+export const FACET_MODES = ["always", "cue"] as const satisfies readonly FacetMode[];
+export const DIRECTION_TIERS = [
+  "absolute",
+  "strong",
+  "normal",
+  "background",
+] as const satisfies readonly DirectionTier[];
+
+export const NEW_ENTRY_SENTINEL = "__new__" as const;
 
 export type Kind = { id: KindId; label: string };
 
@@ -29,7 +40,7 @@ export type Facet = {
 export type Connection = {
   id: string;
   toEntryId: string;
-  kind: "brings";
+  kind: ConnectionKind;
 };
 
 export type Entry = {
@@ -46,7 +57,7 @@ export type Entry = {
   updatedAt: number;
 };
 
-export type FacetInput = {
+export type FacetDraft = {
   id?: string;
   label: string;
   body?: string;
@@ -57,8 +68,8 @@ export type FacetInput = {
 export type EntryInput = {
   typeId: string;
   name: string;
-  facets?: FacetInput[];
+  facets?: FacetDraft[];
   cues?: string[];
-  connections?: { toEntryId: string; kind?: "brings" }[];
+  connections?: { toEntryId: string; kind?: ConnectionKind }[];
   tier?: DirectionTier;
 };

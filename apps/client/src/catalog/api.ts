@@ -1,4 +1,6 @@
-import type { Entry, EntryInput, Kind, KindId, Type } from "./types.js";
+import type { EntryCreate, EntryUpdate, KindId } from "@tavern/shared";
+
+import type { Entry, Kind, Type } from "./types.js";
 
 const json = async <T>(r: Response): Promise<T> => {
   if (!r.ok) {
@@ -28,7 +30,8 @@ export const api = {
     send(`/api/types/${id}`, { method: "PATCH", body: JSON.stringify(patch) }).then((r) =>
       json<Type>(r),
     ),
-  deleteType: (id: string) => send(`/api/types/${id}`, { method: "DELETE" }).then((r) => json<void>(r)),
+  deleteType: (id: string) =>
+    send(`/api/types/${id}`, { method: "DELETE" }).then((r) => json<void>(r)),
 
   listEntries: (opts: { typeId?: string; kindId?: KindId; q?: string } = {}) => {
     const qs = new URLSearchParams();
@@ -38,11 +41,11 @@ export const api = {
     return send(`/api/entries${qs.size ? `?${qs}` : ""}`).then((r) => json<Entry[]>(r));
   },
   getEntry: (id: string) => send(`/api/entries/${id}`).then((r) => json<Entry>(r)),
-  createEntry: (input: EntryInput) =>
+  createEntry: (input: EntryCreate) =>
     send("/api/entries", { method: "POST", body: JSON.stringify(input) }).then((r) =>
       json<Entry>(r),
     ),
-  updateEntry: (id: string, patch: Partial<EntryInput>) =>
+  updateEntry: (id: string, patch: EntryUpdate) =>
     send(`/api/entries/${id}`, { method: "PATCH", body: JSON.stringify(patch) }).then((r) =>
       json<Entry>(r),
     ),

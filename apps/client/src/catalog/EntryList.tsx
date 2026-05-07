@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { useCatalog } from "./store.js";
+import { NEW_ENTRY_SENTINEL } from "./types.js";
 
 export const EntryList = () => {
   const {
@@ -14,8 +15,13 @@ export const EntryList = () => {
     reloadEntries,
   } = useCatalog();
 
+  const skipInitial = useRef(true);
   useEffect(() => {
-    const t = setTimeout(() => reloadEntries(), 150);
+    if (skipInitial.current) {
+      skipInitial.current = false;
+      return;
+    }
+    const t = setTimeout(reloadEntries, 150);
     return () => clearTimeout(t);
   }, [filter, reloadEntries]);
 
@@ -34,7 +40,7 @@ export const EntryList = () => {
           className="bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
           disabled={!selectedType}
           title={!selectedType ? "Select a type first" : "Create a new entry"}
-          onClick={() => selectEntry("__new__" as unknown as string)}
+          onClick={() => selectEntry(NEW_ENTRY_SENTINEL)}
         >
           + new
         </button>
@@ -64,9 +70,7 @@ export const EntryList = () => {
             </li>
           );
         })}
-        {entries.length === 0 && (
-          <li className="p-4 text-xs text-zinc-600">No entries yet.</li>
-        )}
+        {entries.length === 0 && <li className="p-4 text-xs text-zinc-600">No entries yet.</li>}
       </ul>
     </div>
   );

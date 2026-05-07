@@ -1,5 +1,14 @@
 import { asc, eq, inArray, max } from "drizzle-orm";
-import { newId } from "@tavern/shared";
+import {
+  type ConnectionKind,
+  type DirectionTier,
+  type EntryCreate,
+  type EntryUpdate,
+  type FacetInput,
+  type FacetMode,
+  type KindId,
+  newId,
+} from "@tavern/shared";
 
 import { type Db } from "../db/client.js";
 import {
@@ -10,22 +19,11 @@ import {
   facets,
   kinds,
   types,
-  type ConnectionKind,
-  type DirectionTier,
-  type FacetMode,
   KIND_DIRECTION,
-  type KindId,
 } from "../db/schema.js";
 
 export type Kind = { id: string; label: string };
 export type Type = { id: string; kindId: string; name: string; position: number };
-export type FacetInput = {
-  id?: string;
-  label: string;
-  body?: string;
-  mode?: FacetMode;
-  position?: number;
-};
 export type Facet = {
   id: string;
   entryId: string;
@@ -36,7 +34,6 @@ export type Facet = {
 };
 export type Connection = {
   id: string;
-  fromEntryId: string;
   toEntryId: string;
   kind: ConnectionKind;
 };
@@ -46,7 +43,7 @@ export type Entry = {
   name: string;
   facets: Facet[];
   cues: string[];
-  connections: { id: string; toEntryId: string; kind: ConnectionKind }[];
+  connections: Connection[];
   tier: DirectionTier | null;
   embeddingModel: string | null;
   hasEmbedding: boolean;
@@ -61,15 +58,6 @@ const nextTypePosition = (db: Db, kindId: string): number => {
     .select({ m: max(types.position) })
     .from(types)
     .where(eq(types.kindId, kindId))
-    .get();
-  return (row?.m ?? -1) + 1;
-};
-
-const nextFacetPosition = (db: Db, entryId: string): number => {
-  const row = db
-    .select({ m: max(facets.position) })
-    .from(facets)
-    .where(eq(facets.entryId, entryId))
     .get();
   return (row?.m ?? -1) + 1;
 };
@@ -92,7 +80,11 @@ export const createType = (db: Db, kindId: KindId, name: string): Type => {
   return row;
 };
 
-export const updateType = (db: Db, id: string, patch: { name?: string; position?: number }): Type | null => {
+export const updateType = (
+  db: Db,
+  id: string,
+  patch: { name?: string; position?: number },
+): Type | null => {
   const updates: Partial<typeof types.$inferInsert> = {};
   if (patch.name !== undefined) updates.name = patch.name;
   if (patch.position !== undefined) updates.position = patch.position;
@@ -103,54 +95,76 @@ export const updateType = (db: Db, id: string, patch: { name?: string; position?
 };
 
 export const deleteType = (db: Db, id: string): boolean => {
-  const entryRows = db.select({ id: entries.id }).from(entries).where(eq(entries.typeId, id)).all();
-  for (const e of entryRows) deleteEntry(db, e.id);
+  // cascade handles entries → facets/cues/connections/direction_tier
   const r = db.delete(types).where(eq(types.id, id)).run();
   return r.changes > 0;
 };
 
-const loadEntry = (db: Db, id: string): Entry | null => {
+export const getEntry = (db: Db, id: string): Entry | null => {
   const row = db.select().from(entries).where(eq(entries.id, id)).get();
   if (!row) return null;
-  return hydrateEntry(db, row);
+  return hydrateEntries(db, [row])[0] ?? null;
 };
 
-const hydrateEntry = (db: Db, row: typeof entries.$inferSelect): Entry => {
+const hydrateEntries = (db: Db, rows: (typeof entries.$inferSelect)[]): Entry[] => {
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id);
+
+  const groupBy = <T extends { entryId: string }>(list: T[]): Map<string, T[]> => {
+    const m = new Map<string, T[]>();
+    for (const x of list) {
+      const arr = m.get(x.entryId);
+      if (arr) arr.push(x);
+      else m.set(x.entryId, [x]);
+    }
+    return m;
+  };
+
   const facetRows = db
     .select()
     .from(facets)
-    .where(eq(facets.entryId, row.id))
+    .where(inArray(facets.entryId, ids))
     .orderBy(asc(facets.position))
     .all();
-  const cueRows = db.select().from(cues).where(eq(cues.entryId, row.id)).all();
+  const cueRows = db.select().from(cues).where(inArray(cues.entryId, ids)).all();
   const connRows = db
     .select()
     .from(connections)
-    .where(eq(connections.fromEntryId, row.id))
+    .where(inArray(connections.fromEntryId, ids))
     .all();
-  const tierRow = db
+  const tierRows = db
     .select()
     .from(directionTier)
-    .where(eq(directionTier.entryId, row.id))
-    .get();
+    .where(inArray(directionTier.entryId, ids))
+    .all();
 
-  return {
+  const facetsByEntry = groupBy(facetRows);
+  const cuesByEntry = groupBy(cueRows);
+  const connsByEntry = new Map<string, typeof connRows>();
+  for (const c of connRows) {
+    const arr = connsByEntry.get(c.fromEntryId);
+    if (arr) arr.push(c);
+    else connsByEntry.set(c.fromEntryId, [c]);
+  }
+  const tierByEntry = new Map(tierRows.map((t) => [t.entryId, t.tier]));
+
+  return rows.map((row) => ({
     id: row.id,
     typeId: row.typeId,
     name: row.name,
-    facets: facetRows,
-    cues: cueRows.map((c) => c.term),
-    connections: connRows.map((c) => ({
+    facets: facetsByEntry.get(row.id) ?? [],
+    cues: (cuesByEntry.get(row.id) ?? []).map((c) => c.term),
+    connections: (connsByEntry.get(row.id) ?? []).map((c) => ({
       id: c.id,
       toEntryId: c.toEntryId,
       kind: c.kind,
     })),
-    tier: tierRow?.tier ?? null,
+    tier: tierByEntry.get(row.id) ?? null,
     embeddingModel: row.embeddingModel,
     hasEmbedding: row.embeddingVec !== null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-  };
+  }));
 };
 
 export const listEntries = (
@@ -177,16 +191,7 @@ export const listEntries = (
   const filtered = opts.q
     ? rows.filter((r) => r.name.toLowerCase().includes(opts.q!.toLowerCase()))
     : rows;
-  return filtered.map((r) => hydrateEntry(db, r));
-};
-
-export type EntryInput = {
-  typeId: string;
-  name: string;
-  facets?: FacetInput[];
-  cues?: string[];
-  connections?: { toEntryId: string; kind?: ConnectionKind }[];
-  tier?: DirectionTier;
+  return hydrateEntries(db, filtered);
 };
 
 const isDirectionType = (db: Db, typeId: string): boolean => {
@@ -194,29 +199,26 @@ const isDirectionType = (db: Db, typeId: string): boolean => {
   return t?.kindId === KIND_DIRECTION;
 };
 
-export const createEntry = (db: Db, input: EntryInput): Entry => {
+export const createEntry = (db: Db, input: EntryCreate): Entry => {
   const id = newId();
   const ts = now();
   db.transaction((tx) => {
     tx.insert(entries)
       .values({ id, typeId: input.typeId, name: input.name, createdAt: ts, updatedAt: ts })
       .run();
-    upsertFacets(tx, id, input.facets ?? []);
-    upsertCues(tx, id, input.cues ?? []);
-    upsertConnections(tx, id, input.connections ?? []);
+    insertFacets(tx, id, input.facets);
+    insertCues(tx, id, input.cues);
+    insertConnections(tx, id, input.connections);
     if (isDirectionType(tx, input.typeId)) {
       tx.insert(directionTier)
         .values({ entryId: id, tier: input.tier ?? "normal" })
-        .onConflictDoUpdate({ target: directionTier.entryId, set: { tier: input.tier ?? "normal" } })
         .run();
     }
   });
-  return loadEntry(db, id)!;
+  return getEntry(db, id)!;
 };
 
-export type EntryPatch = Partial<Omit<EntryInput, "typeId">> & { typeId?: string };
-
-export const updateEntry = (db: Db, id: string, patch: EntryPatch): Entry | null => {
+export const updateEntry = (db: Db, id: string, patch: EntryUpdate): Entry | null => {
   const existing = db.select().from(entries).where(eq(entries.id, id)).get();
   if (!existing) return null;
   const ts = now();
@@ -228,15 +230,15 @@ export const updateEntry = (db: Db, id: string, patch: EntryPatch): Entry | null
 
     if (patch.facets !== undefined) {
       tx.delete(facets).where(eq(facets.entryId, id)).run();
-      upsertFacets(tx, id, patch.facets);
+      insertFacets(tx, id, patch.facets);
     }
     if (patch.cues !== undefined) {
       tx.delete(cues).where(eq(cues.entryId, id)).run();
-      upsertCues(tx, id, patch.cues);
+      insertCues(tx, id, patch.cues);
     }
     if (patch.connections !== undefined) {
       tx.delete(connections).where(eq(connections.fromEntryId, id)).run();
-      upsertConnections(tx, id, patch.connections);
+      insertConnections(tx, id, patch.connections);
     }
     const finalTypeId = patch.typeId ?? existing.typeId;
     if (isDirectionType(tx, finalTypeId)) {
@@ -255,7 +257,7 @@ export const updateEntry = (db: Db, id: string, patch: EntryPatch): Entry | null
       tx.delete(directionTier).where(eq(directionTier.entryId, id)).run();
     }
   });
-  return loadEntry(db, id);
+  return getEntry(db, id);
 };
 
 export const deleteEntry = (db: Db, id: string): boolean => {
@@ -263,46 +265,44 @@ export const deleteEntry = (db: Db, id: string): boolean => {
   return r.changes > 0;
 };
 
-export const getEntry = (db: Db, id: string): Entry | null => loadEntry(db, id);
-
-const upsertFacets = (tx: Db, entryId: string, list: FacetInput[]) => {
-  list.forEach((f, i) => {
-    tx.insert(facets)
-      .values({
+const insertFacets = (tx: Db, entryId: string, list: FacetInput[]) => {
+  if (list.length === 0) return;
+  tx.insert(facets)
+    .values(
+      list.map((f, i) => ({
         id: f.id ?? newId(),
         entryId,
         label: f.label,
         body: f.body ?? "",
         mode: f.mode ?? "always",
         position: f.position ?? i,
-      })
-      .run();
-  });
+      })),
+    )
+    .run();
 };
 
-const upsertCues = (tx: Db, entryId: string, list: string[]) => {
-  for (const term of list) {
-    if (term.trim().length === 0) continue;
-    tx.insert(cues).values({ id: newId(), entryId, term: term.trim() }).run();
-  }
+const insertCues = (tx: Db, entryId: string, list: string[]) => {
+  const rows = list
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
+    .map((term) => ({ id: newId(), entryId, term }));
+  if (rows.length === 0) return;
+  tx.insert(cues).values(rows).run();
 };
 
-const upsertConnections = (
+const insertConnections = (
   tx: Db,
   fromEntryId: string,
   list: { toEntryId: string; kind?: ConnectionKind }[],
 ) => {
-  for (const c of list) {
-    if (c.toEntryId === fromEntryId) continue;
-    tx.insert(connections)
-      .values({
-        id: newId(),
-        fromEntryId,
-        toEntryId: c.toEntryId,
-        kind: c.kind ?? "brings",
-      })
-      .onConflictDoNothing()
-      .run();
-  }
+  const rows = list
+    .filter((c) => c.toEntryId !== fromEntryId)
+    .map((c) => ({
+      id: newId(),
+      fromEntryId,
+      toEntryId: c.toEntryId,
+      kind: c.kind ?? ("brings" as const),
+    }));
+  if (rows.length === 0) return;
+  tx.insert(connections).values(rows).onConflictDoNothing().run();
 };
-

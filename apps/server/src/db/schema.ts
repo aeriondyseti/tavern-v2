@@ -1,26 +1,21 @@
 import { sql } from "drizzle-orm";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+
 import {
-  index,
-  integer,
-  primaryKey,
-  sqliteTable,
-  text,
-  uniqueIndex,
-} from "drizzle-orm/sqlite-core";
+  ConnectionKind,
+  DirectionTier,
+  FacetMode,
+  KIND_DIRECTION,
+  KIND_WORLD,
+  KindId,
+} from "@tavern/shared";
 
-export const KIND_DIRECTION = "direction";
-export const KIND_WORLD = "world";
-export const KIND_IDS = [KIND_DIRECTION, KIND_WORLD] as const;
-export type KindId = (typeof KIND_IDS)[number];
-
-export const FACET_MODES = ["always", "cue"] as const;
-export type FacetMode = (typeof FACET_MODES)[number];
-
-export const CONNECTION_KINDS = ["brings"] as const;
-export type ConnectionKind = (typeof CONNECTION_KINDS)[number];
-
-export const DIRECTION_TIERS = ["absolute", "strong", "normal", "background"] as const;
-export type DirectionTier = (typeof DIRECTION_TIERS)[number];
+export const KIND_IDS = KindId.options;
+export const FACET_MODES = FacetMode.options;
+export const CONNECTION_KINDS = ConnectionKind.options;
+export const DIRECTION_TIERS = DirectionTier.options;
+export { KIND_DIRECTION, KIND_WORLD };
+export type { ConnectionKind, DirectionTier, FacetMode, KindId } from "@tavern/shared";
 
 export const kinds = sqliteTable("kinds", {
   id: text("id").primaryKey(),
@@ -117,15 +112,12 @@ export const connections = sqliteTable(
   }),
 );
 
-export const directionTier = sqliteTable(
-  "direction_tier",
-  {
-    entryId: text("entry_id")
-      .primaryKey()
-      .references(() => entries.id, { onDelete: "cascade" }),
-    tier: text("tier", { enum: DIRECTION_TIERS }).notNull().default("normal"),
-  },
-);
+export const directionTier = sqliteTable("direction_tier", {
+  entryId: text("entry_id")
+    .primaryKey()
+    .references(() => entries.id, { onDelete: "cascade" }),
+  tier: text("tier", { enum: DIRECTION_TIERS }).notNull().default("normal"),
+});
 
 export type EntryRow = typeof entries.$inferSelect;
 export type FacetRow = typeof facets.$inferSelect;

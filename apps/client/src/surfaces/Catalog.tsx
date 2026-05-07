@@ -6,17 +6,13 @@ import { EntryList } from "../catalog/EntryList.js";
 import { EntryEditor } from "../catalog/EntryEditor.js";
 
 export const Catalog = () => {
-  const { load, error, loading } = useCatalog();
+  const { load, error, loaded } = useCatalog();
   useEffect(() => {
     load();
   }, [load]);
 
-  if (loading && !error) {
-    return <div className="p-4 text-sm text-zinc-500">Loading catalog…</div>;
-  }
-  if (error) {
-    return <div className="p-4 text-sm text-rose-400">Error: {error}</div>;
-  }
+  if (error) return <div className="p-4 text-sm text-rose-400">Error: {error}</div>;
+  if (!loaded) return <div className="p-4 text-sm text-zinc-500">Loading catalog…</div>;
 
   return (
     <div className="flex h-full">

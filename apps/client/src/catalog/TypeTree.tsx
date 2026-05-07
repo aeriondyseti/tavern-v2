@@ -65,8 +65,9 @@ export const TypeTree = () => {
                       onChange={(e) => setRenameDraft(e.target.value)}
                       onBlur={() => submitRename(t.id)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") submitRename(t.id);
-                        if (e.key === "Escape") {
+                        if (e.key === "Enter") {
+                          e.currentTarget.blur();
+                        } else if (e.key === "Escape") {
                           setRenamingId(null);
                           setRenameDraft("");
                         }
@@ -107,8 +108,9 @@ export const TypeTree = () => {
                     onChange={(e) => setDraftName(e.target.value)}
                     onBlur={() => submitNew(k.id as KindId)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") submitNew(k.id as KindId);
-                      if (e.key === "Escape") {
+                      if (e.key === "Enter") {
+                        e.currentTarget.blur();
+                      } else if (e.key === "Escape") {
                         setAdding(null);
                         setDraftName("");
                       }

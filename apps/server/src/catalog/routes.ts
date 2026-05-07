@@ -1,43 +1,27 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { EntryCreate, EntryUpdate, KindId } from "@tavern/shared";
 
 import { type Db } from "../db/client.js";
-import { DIRECTION_TIERS, FACET_MODES, KIND_IDS } from "../db/schema.js";
 import * as repo from "./repo.js";
 
-const KindEnum = z.enum(KIND_IDS);
-const FacetModeEnum = z.enum(FACET_MODES);
-const TierEnum = z.enum(DIRECTION_TIERS);
-
-const TypeCreate = z.object({ kindId: KindEnum, name: z.string().min(1) });
-const TypeUpdate = z.object({ name: z.string().min(1).optional(), position: z.number().int().optional() });
-
-const FacetInput = z.object({
-  id: z.string().optional(),
-  label: z.string().min(1),
-  body: z.string().default(""),
-  mode: FacetModeEnum.default("always"),
-  position: z.number().int().nonnegative().optional(),
+const TypeCreate = z.object({ kindId: KindId, name: z.string().min(1) });
+const TypeUpdate = z.object({
+  name: z.string().min(1).optional(),
+  position: z.number().int().optional(),
 });
-const ConnectionInput = z.object({
-  toEntryId: z.string().min(1),
-  kind: z.literal("brings").default("brings"),
-});
-const EntryCreate = z.object({
-  typeId: z.string().min(1),
-  name: z.string().min(1),
-  facets: z.array(FacetInput).default([]),
-  cues: z.array(z.string()).default([]),
-  connections: z.array(ConnectionInput).default([]),
-  tier: TierEnum.optional(),
-});
-const EntryUpdate = EntryCreate.partial();
 
 const ListEntriesQuery = z.object({
   typeId: z.string().optional(),
-  kindId: KindEnum.optional(),
+  kindId: KindId.optional(),
   q: z.string().optional(),
 });
+
+const isUniqueError = (e: unknown): boolean =>
+  typeof e === "object" &&
+  e !== null &&
+  "code" in e &&
+  (e as { code: string }).code === "SQLITE_CONSTRAINT_UNIQUE";
 
 export const buildCatalogRoutes = (db: Db) => {
   const r = new Hono();
@@ -46,7 +30,7 @@ export const buildCatalogRoutes = (db: Db) => {
 
   r.get("/types", (c) => {
     const kindId = c.req.query("kindId");
-    const parsed = kindId ? KindEnum.safeParse(kindId) : null;
+    const parsed = kindId ? KindId.safeParse(kindId) : null;
     if (parsed && !parsed.success) return c.json({ error: "invalid kindId" }, 400);
     return c.json(repo.listTypes(db, parsed?.data));
   });
@@ -64,14 +48,14 @@ export const buildCatalogRoutes = (db: Db) => {
     return updated ? c.json(updated) : c.json({ error: "not found" }, 404);
   });
 
-  r.delete("/types/:id", (c) => {
-    return repo.deleteType(db, c.req.param("id"))
+  r.delete("/types/:id", (c) =>
+    repo.deleteType(db, c.req.param("id"))
       ? c.body(null, 204)
-      : c.json({ error: "not found" }, 404);
-  });
+      : c.json({ error: "not found" }, 404),
+  );
 
   r.get("/entries", (c) => {
-    const parsed = ListEntriesQuery.safeParse(Object.fromEntries(new URL(c.req.url).searchParams));
+    const parsed = ListEntriesQuery.safeParse(c.req.query());
     if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
     return c.json(repo.listEntries(db, parsed.data));
   });
@@ -104,17 +88,11 @@ export const buildCatalogRoutes = (db: Db) => {
     }
   });
 
-  r.delete("/entries/:id", (c) => {
-    return repo.deleteEntry(db, c.req.param("id"))
+  r.delete("/entries/:id", (c) =>
+    repo.deleteEntry(db, c.req.param("id"))
       ? c.body(null, 204)
-      : c.json({ error: "not found" }, 404);
-  });
+      : c.json({ error: "not found" }, 404),
+  );
 
   return r;
 };
-
-const isUniqueError = (e: unknown): boolean =>
-  typeof e === "object" &&
-  e !== null &&
-  "code" in e &&
-  (e as { code: string }).code === "SQLITE_CONSTRAINT_UNIQUE";

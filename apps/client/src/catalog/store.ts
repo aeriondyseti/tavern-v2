@@ -20,7 +20,7 @@ type State = {
   selectedTypeId: string | null;
   selectedEntryId: string | null;
   filter: string;
-  loading: boolean;
+  loaded: boolean;
   error: string | null;
 };
 
@@ -44,18 +44,20 @@ export const useCatalog = create<State & Actions>((set, get) => ({
   selectedTypeId: null,
   selectedEntryId: null,
   filter: "",
-  loading: false,
+  loaded: false,
   error: null,
 
   load: async () => {
-    set({ loading: true, error: null });
+    set({ error: null });
     try {
-      const [kinds, types] = await Promise.all([api.listKinds(), api.listTypes()]);
-      set({ kinds, types, loading: false });
-      const entries = await api.listEntries();
-      set({ entries });
+      const [kinds, types, entries] = await Promise.all([
+        api.listKinds(),
+        api.listTypes(),
+        api.listEntries(),
+      ]);
+      set({ kinds, types, entries, loaded: true });
     } catch (e) {
-      set({ loading: false, error: e instanceof Error ? e.message : String(e) });
+      set({ error: e instanceof Error ? e.message : String(e) });
     }
   },
 

@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useCatalog, type EntryDraft } from "./store.js";
-import { DIRECTION_TIERS, FACET_MODES, KIND_DIRECTION } from "./types.js";
+import {
+  DIRECTION_TIERS,
+  FACET_MODES,
+  KIND_DIRECTION,
+  NEW_ENTRY_SENTINEL,
+} from "./types.js";
 import type { DirectionTier, Entry, FacetMode } from "./types.js";
+
+type FacetField = EntryDraft["facets"][number];
 
 const draftFromEntry = (e: Entry): EntryDraft => ({
   id: e.id,
@@ -42,7 +49,7 @@ export const EntryEditor = () => {
   const isDirection = selectedType?.kindId === KIND_DIRECTION;
 
   const initial = useMemo<EntryDraft | null>(() => {
-    if (selectedEntryId === "__new__" && selectedType) return blankDraft(selectedType.id);
+    if (selectedEntryId === NEW_ENTRY_SENTINEL && selectedType) return blankDraft(selectedType.id);
     if (selectedEntryId) {
       const e = entries.find((x) => x.id === selectedEntryId);
       if (e) return draftFromEntry(e);
@@ -70,6 +77,10 @@ export const EntryEditor = () => {
   }
 
   const update = (patch: Partial<EntryDraft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
+  const updateFacet = (i: number, patch: Partial<FacetField>) =>
+    setDraft((d) =>
+      d ? { ...d, facets: d.facets.map((x, j) => (j === i ? { ...x, ...patch } : x)) } : d,
+    );
 
   const onSave = async () => {
     if (!draft.name.trim()) {
@@ -155,22 +166,12 @@ export const EntryEditor = () => {
                     className="flex-1 bg-zinc-900 px-2 py-1 text-sm outline-none"
                     placeholder="label"
                     value={f.label}
-                    onChange={(e) =>
-                      update({
-                        facets: draft.facets.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)),
-                      })
-                    }
+                    onChange={(e) => updateFacet(i, { label: e.target.value })}
                   />
                   <select
                     className="bg-zinc-900 px-2 py-1 text-sm"
                     value={f.mode}
-                    onChange={(e) =>
-                      update({
-                        facets: draft.facets.map((x, j) =>
-                          j === i ? { ...x, mode: e.target.value as FacetMode } : x,
-                        ),
-                      })
-                    }
+                    onChange={(e) => updateFacet(i, { mode: e.target.value as FacetMode })}
                   >
                     {FACET_MODES.map((m) => (
                       <option key={m} value={m}>
@@ -192,11 +193,7 @@ export const EntryEditor = () => {
                   rows={3}
                   placeholder="body"
                   value={f.body}
-                  onChange={(e) =>
-                    update({
-                      facets: draft.facets.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)),
-                    })
-                  }
+                  onChange={(e) => updateFacet(i, { body: e.target.value })}
                 />
               </li>
             ))}
