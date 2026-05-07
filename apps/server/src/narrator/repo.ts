@@ -98,76 +98,72 @@ export const completeBeat = (
     .run();
 };
 
-const archiveCurrentToAlts = (
-  db: Db,
-  id: string,
-): { row: typeof beats.$inferSelect; nextAltIndex: number } | null => {
-  const row = db.select().from(beats).where(eq(beats.id, id)).get();
-  if (!row) return null;
+// Snapshot the live narration into beats.alts when it has produced output,
+// so reroll/regenerate stack alternates without losing prior runs. Mid-stream
+// cancels (no narrator_output yet) leave alts untouched but still bump
+// nextAltIndex so the next transcript's altIndex stays monotonically aligned
+// with the alts array's eventual size.
+const archiveCurrentToAlts = (db: Db, row: typeof beats.$inferSelect): number => {
   const nextAltIndex = row.alts.length;
-  if (row.narratorOutput) {
-    const latestTranscript = db
-      .select({ id: beatTranscripts.id })
-      .from(beatTranscripts)
-      .where(eq(beatTranscripts.beatId, id))
-      .orderBy(desc(beatTranscripts.createdAt))
-      .limit(1)
-      .get();
-    db.update(beats)
-      .set({
-        alts: [
-          ...row.alts,
-          {
-            narratorOutput: row.narratorOutput,
-            transcriptId: latestTranscript?.id ?? "",
-            createdAt: row.completedAt ?? row.createdAt,
-          },
-        ],
-      })
-      .where(eq(beats.id, id))
-      .run();
-  }
-  return { row, nextAltIndex };
+  if (!row.narratorOutput) return nextAltIndex;
+  const latestTranscript = db
+    .select({ id: beatTranscripts.id })
+    .from(beatTranscripts)
+    .where(eq(beatTranscripts.beatId, row.id))
+    .orderBy(desc(beatTranscripts.createdAt))
+    .limit(1)
+    .get();
+  db.update(beats)
+    .set({
+      alts: [
+        ...row.alts,
+        {
+          narratorOutput: row.narratorOutput,
+          ...(latestTranscript?.id ? { transcriptId: latestTranscript.id } : {}),
+          createdAt: row.completedAt ?? row.createdAt,
+        },
+      ],
+    })
+    .where(eq(beats.id, row.id))
+    .run();
+  return nextAltIndex;
 };
 
 export const prepareReroll = (
   db: Db,
   id: string,
 ): { altIndex: number; sceneId: string; playerInput: string } | null => {
-  const archived = archiveCurrentToAlts(db, id);
-  if (!archived) return null;
+  const row = db.select().from(beats).where(eq(beats.id, id)).get();
+  if (!row) return null;
+  const altIndex = archiveCurrentToAlts(db, row);
   db.update(beats)
-    .set({
-      narratorOutput: "",
-      status: "streaming",
-      activeAlt: -1,
-      completedAt: null,
-    })
+    .set({ narratorOutput: "", status: "streaming", activeAlt: -1, completedAt: null })
     .where(eq(beats.id, id))
     .run();
-  return {
-    altIndex: archived.nextAltIndex,
-    sceneId: archived.row.sceneId,
-    playerInput: archived.row.playerInput,
-  };
+  return { altIndex, sceneId: row.sceneId, playerInput: row.playerInput };
 };
 
 export const editNarratorOutput = (db: Db, id: string, narratorOutput: string): Beat | null => {
-  const row = db.select().from(beats).where(eq(beats.id, id)).get();
-  if (!row) return null;
-  db.update(beats)
+  const rows = db
+    .update(beats)
     .set({ narratorOutput, status: "complete", completedAt: Date.now() })
     .where(eq(beats.id, id))
-    .run();
-  return getBeat(db, id);
+    .returning()
+    .all();
+  return rows[0] ? beatToDto(rows[0]) : null;
 };
 
 export const setActiveAlt = (db: Db, id: string, activeAlt: number): Beat | null => {
   const row = db.select().from(beats).where(eq(beats.id, id)).get();
   if (!row) return null;
   if (activeAlt < -1 || activeAlt >= row.alts.length) return null;
-  db.update(beats).set({ activeAlt }).where(eq(beats.id, id)).run();
-  return getBeat(db, id);
+  const rows = db
+    .update(beats)
+    .set({ activeAlt })
+    .where(eq(beats.id, id))
+    .returning()
+    .all();
+  return rows[0] ? beatToDto(rows[0]) : null;
 };
 
 export const prepareRegenerate = (
@@ -177,8 +173,6 @@ export const prepareRegenerate = (
 ): { altIndex: number; sceneId: string; playerInput: string; deletedBeatIds: string[] } | null => {
   const row = db.select().from(beats).where(eq(beats.id, id)).get();
   if (!row) return null;
-  // Drop every Beat after this one in the Scene; M5 spec opts for the
-  // confirm-and-delete flow rather than branching alt timelines.
   const subsequentRows = db
     .select({ id: beats.id })
     .from(beats)
@@ -188,9 +182,7 @@ export const prepareRegenerate = (
   if (subsequentIds.length > 0) {
     db.delete(beats).where(inArray(beats.id, subsequentIds)).run();
   }
-
-  const archived = archiveCurrentToAlts(db, id);
-  if (!archived) return null;
+  const altIndex = archiveCurrentToAlts(db, row);
   db.update(beats)
     .set({
       playerInput: newPlayerInput,
@@ -202,7 +194,7 @@ export const prepareRegenerate = (
     .where(eq(beats.id, id))
     .run();
   return {
-    altIndex: archived.nextAltIndex,
+    altIndex,
     sceneId: row.sceneId,
     playerInput: newPlayerInput,
     deletedBeatIds: subsequentIds,

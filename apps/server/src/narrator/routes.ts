@@ -12,7 +12,6 @@ import {
   createStreamingBeat,
   deleteBeat,
   editNarratorOutput,
-  getBeat,
   getTranscriptsForBeat,
   listBeatsForScene,
   prepareRegenerate,
@@ -25,10 +24,17 @@ import { runNarrator } from "./runner.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 
 const BeatPost = z.object({ playerInput: z.string().min(1) });
-const NarratorEdit = z.object({
-  narratorOutput: z.string().optional(),
-  activeAlt: z.number().int().min(-1).optional(),
-});
+const NarratorEdit = z
+  .object({
+    narratorOutput: z.string().optional(),
+    activeAlt: z.number().int().min(-1).optional(),
+  })
+  .refine((d) => d.narratorOutput !== undefined || d.activeAlt !== undefined, {
+    message: "must include narratorOutput or activeAlt",
+  })
+  .refine((d) => !(d.narratorOutput !== undefined && d.activeAlt !== undefined), {
+    message: "narratorOutput and activeAlt are mutually exclusive",
+  });
 
 type StreamArgs = {
   beatId: string;
@@ -135,16 +141,13 @@ export const buildNarratorRoutes = (db: Db) => {
   r.patch("/beats/:id", async (c) => {
     const body = NarratorEdit.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    let updated = getBeat(db, c.req.param("id"));
-    if (!updated) return c.json({ error: "not found" }, 404);
+    const id = c.req.param("id");
     if (body.data.narratorOutput !== undefined) {
-      updated = editNarratorOutput(db, c.req.param("id"), body.data.narratorOutput);
+      const updated = editNarratorOutput(db, id, body.data.narratorOutput);
+      return updated ? c.json(updated) : c.json({ error: "not found" }, 404);
     }
-    if (body.data.activeAlt !== undefined) {
-      updated = setActiveAlt(db, c.req.param("id"), body.data.activeAlt);
-      if (!updated) return c.json({ error: "invalid activeAlt" }, 400);
-    }
-    return updated ? c.json(updated) : c.json({ error: "not found" }, 404);
+    const updated = setActiveAlt(db, id, body.data.activeAlt!);
+    return updated ? c.json(updated) : c.json({ error: "invalid activeAlt or not found" }, 400);
   });
 
   r.post("/scenes/:sceneId/beats", async (c) => {

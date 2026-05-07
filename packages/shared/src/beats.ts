@@ -1,7 +1,7 @@
 export const BEAT_STATUSES = ["streaming", "complete", "cancelled", "error"] as const;
 export type BeatStatus = (typeof BEAT_STATUSES)[number];
 
-export type BeatAlt = { narratorOutput: string; transcriptId: string; createdAt: number };
+export type BeatAlt = { narratorOutput: string; transcriptId?: string; createdAt: number };
 
 export type Beat = {
   id: string;

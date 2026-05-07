@@ -227,7 +227,7 @@ export const beats = sqliteTable(
     narratorOutput: text("narrator_output").notNull().default(""),
     status: text("status", { enum: BEAT_STATUSES }).notNull().default("streaming"),
     alts: text("alts", { mode: "json" })
-      .$type<Array<{ narratorOutput: string; transcriptId: string; createdAt: number }>>()
+      .$type<Array<{ narratorOutput: string; transcriptId?: string; createdAt: number }>>()
       .notNull()
       .default([]),
     activeAlt: integer("active_alt").notNull().default(-1),

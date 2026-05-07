@@ -5,6 +5,11 @@ import { useNarrator } from "./store.js";
 
 type Props = { sceneId: string; beat: Beat };
 
+type EditingState =
+  | null
+  | { kind: "narrator"; draft: string }
+  | { kind: "player"; draft: string };
+
 const displayedOutput = (beat: Beat): string =>
   beat.activeAlt >= 0 && beat.alts[beat.activeAlt]
     ? beat.alts[beat.activeAlt]!.narratorOutput
@@ -19,10 +24,7 @@ export const BeatItem = ({ sceneId, beat }: Props) => {
     deleteBeat,
     live,
   } = useNarrator();
-  const [editingNarrator, setEditingNarrator] = useState(false);
-  const [narratorDraft, setNarratorDraft] = useState(beat.narratorOutput);
-  const [editingPlayer, setEditingPlayer] = useState(false);
-  const [playerDraft, setPlayerDraft] = useState(beat.playerInput);
+  const [editing, setEditing] = useState<EditingState>(null);
 
   const streaming = live.streaming;
   const totalAlts = beat.alts.length;
@@ -34,30 +36,26 @@ export const BeatItem = ({ sceneId, beat }: Props) => {
         ? `latest (${totalAlts + 1}/${totalAlts + 1})`
         : `alt ${altIndex + 1}/${totalAlts + 1}`;
 
-  const onPlayerSave = async () => {
-    const trimmed = playerDraft.trim();
-    if (!trimmed || trimmed === beat.playerInput) {
-      setEditingPlayer(false);
-      setPlayerDraft(beat.playerInput);
-      return;
-    }
+  const closeEditor = () => setEditing(null);
+
+  const onPlayerSave = async (draft: string) => {
+    const trimmed = draft.trim();
+    if (!trimmed || trimmed === beat.playerInput) return closeEditor();
     if (
       !confirm(
         "This regenerates from this beat. All later beats in this scene will be deleted. Continue?",
       )
     ) {
-      setEditingPlayer(false);
-      setPlayerDraft(beat.playerInput);
-      return;
+      return closeEditor();
     }
-    setEditingPlayer(false);
+    closeEditor();
     await regenerateBeat(sceneId, beat.id, trimmed);
   };
 
-  const onNarratorSave = async () => {
-    setEditingNarrator(false);
-    if (narratorDraft === beat.narratorOutput) return;
-    await editNarratorOutput(sceneId, beat.id, narratorDraft);
+  const onNarratorSave = async (draft: string) => {
+    closeEditor();
+    if (draft === beat.narratorOutput) return;
+    await editNarratorOutput(sceneId, beat.id, draft);
   };
 
   const cyclePrev = () => {
@@ -73,23 +71,25 @@ export const BeatItem = ({ sceneId, beat }: Props) => {
     void selectAlt(sceneId, beat.id, next === totalAlts ? -1 : next);
   };
 
+  const isPlayerEdit = editing?.kind === "player";
+  const isNarratorEdit = editing?.kind === "narrator";
+
   return (
     <article className="space-y-1">
-      {editingPlayer ? (
+      {isPlayerEdit ? (
         <div className="flex items-start gap-2 border-l-2 border-zinc-500 pl-3">
           <textarea
             autoFocus
             rows={2}
             className="flex-1 bg-zinc-900 px-2 py-1 text-sm text-zinc-200 outline-none"
-            value={playerDraft}
-            onChange={(e) => setPlayerDraft(e.target.value)}
+            value={editing.draft}
+            onChange={(e) => setEditing({ kind: "player", draft: e.target.value })}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                void onPlayerSave();
+                void onPlayerSave(editing.draft);
               } else if (e.key === "Escape") {
-                setEditingPlayer(false);
-                setPlayerDraft(beat.playerInput);
+                closeEditor();
               }
             }}
           />
@@ -97,19 +97,16 @@ export const BeatItem = ({ sceneId, beat }: Props) => {
       ) : (
         <div className="border-l-2 border-zinc-700 pl-3 text-zinc-300">{beat.playerInput}</div>
       )}
-      {editingNarrator ? (
+      {isNarratorEdit ? (
         <textarea
           autoFocus
           rows={6}
           className="w-full bg-zinc-900 px-2 py-1 text-sm text-zinc-100 outline-none"
-          value={narratorDraft}
-          onChange={(e) => setNarratorDraft(e.target.value)}
-          onBlur={() => void onNarratorSave()}
+          value={editing.draft}
+          onChange={(e) => setEditing({ kind: "narrator", draft: e.target.value })}
+          onBlur={() => void onNarratorSave(editing.draft)}
           onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              setEditingNarrator(false);
-              setNarratorDraft(beat.narratorOutput);
-            }
+            if (e.key === "Escape") closeEditor();
           }}
         />
       ) : (
@@ -142,37 +139,31 @@ export const BeatItem = ({ sceneId, beat }: Props) => {
         <span className="flex-1" />
         <button
           className="hover:text-zinc-200 disabled:opacity-30"
-          onClick={() => {
-            setNarratorDraft(beat.narratorOutput);
-            setEditingNarrator(true);
-          }}
-          disabled={streaming}
+          onClick={() => setEditing({ kind: "narrator", draft: beat.narratorOutput })}
+          disabled={streaming || editing !== null}
         >
           edit
         </button>
         <button
           className="hover:text-zinc-200 disabled:opacity-30"
-          onClick={() => {
-            setPlayerDraft(beat.playerInput);
-            setEditingPlayer(true);
-          }}
-          disabled={streaming}
+          onClick={() => setEditing({ kind: "player", draft: beat.playerInput })}
+          disabled={streaming || editing !== null}
         >
           edit input
         </button>
         <button
           className="hover:text-zinc-200 disabled:opacity-30"
           onClick={() => void rerollBeat(sceneId, beat.id)}
-          disabled={streaming}
+          disabled={streaming || editing !== null}
         >
           reroll
         </button>
         <button
-          className="hover:text-rose-400"
+          className="hover:text-rose-400 disabled:opacity-30"
           onClick={() => {
             if (confirm("Delete this beat?")) void deleteBeat(sceneId, beat.id);
           }}
-          disabled={streaming}
+          disabled={streaming || editing !== null}
         >
           delete
         </button>
