@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 import { cpSync, existsSync, rmSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
-const here = dirname(fileURLToPath(import.meta.url));
+const here = import.meta.dirname;
 const clientDist = resolve(here, "..", "..", "client", "dist");
 const target = resolve(here, "..", "dist", "public");
 

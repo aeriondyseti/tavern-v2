@@ -32,8 +32,7 @@ export const buildApp = (db: Db, opts: AppOptions = {}) => {
       // SPA fallback: any non-API path that didn't resolve to a static asset
       // gets the bundled index.html so client-side routing works on reload.
       app.notFound((c) => {
-        const url = new URL(c.req.url);
-        if (url.pathname.startsWith("/api/")) return c.json({ error: "not found" }, 404);
+        if (c.req.path.startsWith("/api/")) return c.json({ error: "not found" }, 404);
         return c.html(indexHtml);
       });
     }

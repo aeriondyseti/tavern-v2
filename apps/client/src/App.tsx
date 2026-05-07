@@ -13,8 +13,13 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
       : "text-zinc-500 hover:text-zinc-200"
   }`;
 
-const isMac =
-  typeof navigator !== "undefined" && /mac|iphone|ipad/i.test(navigator.platform);
+const isMac = (() => {
+  if (typeof navigator === "undefined") return false;
+  const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } })
+    .userAgentData;
+  const platform = uaData?.platform ?? navigator.platform ?? navigator.userAgent ?? "";
+  return /mac|iphone|ipad/i.test(platform);
+})();
 const switcherHint = isMac ? "⌘K" : "Ctrl-K";
 
 export const App = () => {

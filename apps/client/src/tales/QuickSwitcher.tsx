@@ -18,6 +18,9 @@ export const QuickSwitcher = () => {
         setOpen((v) => !v);
         if (!open) void loadList();
       } else if (e.key === "Escape" && open) {
+        // Stop other window-level Escape handlers (e.g. BeatStream's stream
+        // canceller) so closing the palette doesn't cancel the active stream.
+        e.stopImmediatePropagation();
         setOpen(false);
       }
     };
