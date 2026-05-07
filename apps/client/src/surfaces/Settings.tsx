@@ -18,6 +18,7 @@ export const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const loadCatalog = useCatalog((s) => s.load);
 
   useEffect(() => {
@@ -81,13 +82,13 @@ export const Settings = () => {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 overflow-y-auto p-6 text-sm">
+    <div className="mx-auto h-full max-w-3xl space-y-8 overflow-y-auto p-6 text-sm">
       <ProviderSection oauth={storage.oauth} />
 
       <Section title="Defaults">
         <Field label="default model">
           <select
-            className="bg-zinc-900 px-2 py-1"
+            className={inputClass}
             value={draft.defaultModel}
             onChange={(e) => update("defaultModel", e.target.value as ModelId)}
           >
@@ -104,7 +105,7 @@ export const Settings = () => {
             min={0}
             max={2}
             step={0.1}
-            className="bg-zinc-900 px-2 py-1"
+            className={inputClass}
             value={draft.defaultTemperature}
             onChange={(e) => update("defaultTemperature", Number(e.target.value))}
           />
@@ -114,7 +115,7 @@ export const Settings = () => {
             type="number"
             min={256}
             step={256}
-            className="bg-zinc-900 px-2 py-1"
+            className={inputClass}
             value={draft.defaultMaxTokens}
             onChange={(e) => update("defaultMaxTokens", Number(e.target.value))}
           />
@@ -124,7 +125,7 @@ export const Settings = () => {
             type="number"
             min={0}
             step={1024}
-            className="bg-zinc-900 px-2 py-1"
+            className={inputClass}
             value={draft.defaultThinkingBudget ?? 0}
             onChange={(e) => {
               const v = Number(e.target.value);
@@ -138,7 +139,7 @@ export const Settings = () => {
       <Section title="Embeddings">
         <Field label="provider">
           <select
-            className="bg-zinc-900 px-2 py-1"
+            className={inputClass}
             value={draft.embeddingProvider}
             onChange={(e) => update("embeddingProvider", e.target.value as SettingsData["embeddingProvider"])}
           >
@@ -149,7 +150,7 @@ export const Settings = () => {
         {draft.embeddingProvider === "local" ? (
           <Field label="local model">
             <input
-              className="w-72 bg-zinc-900 px-2 py-1"
+              className={inputClass}
               value={draft.embeddingModelLocal}
               onChange={(e) => update("embeddingModelLocal", e.target.value)}
             />
@@ -158,7 +159,7 @@ export const Settings = () => {
           <>
             <Field label="api url">
               <input
-                className="w-96 bg-zinc-900 px-2 py-1"
+                className={inputClassWide}
                 placeholder="https://api.openai.com/v1/embeddings"
                 value={draft.embeddingApiUrl ?? ""}
                 onChange={(e) => update("embeddingApiUrl", e.target.value || null)}
@@ -166,7 +167,7 @@ export const Settings = () => {
             </Field>
             <Field label="api model">
               <input
-                className="w-72 bg-zinc-900 px-2 py-1"
+                className={inputClass}
                 placeholder="text-embedding-3-small"
                 value={draft.embeddingApiModel ?? ""}
                 onChange={(e) => update("embeddingApiModel", e.target.value || null)}
@@ -175,7 +176,7 @@ export const Settings = () => {
             <Field label="api key">
               <input
                 type="password"
-                className="w-72 bg-zinc-900 px-2 py-1"
+                className={inputClass}
                 placeholder="sk-…"
                 value={draft.embeddingApiKey ?? ""}
                 onChange={(e) => update("embeddingApiKey", e.target.value || null)}
@@ -195,39 +196,35 @@ export const Settings = () => {
         <Field label="db path">
           <code className="text-zinc-400">{storage.dbPath}</code>
         </Field>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            className="bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-900 hover:bg-white"
-            onClick={downloadBackup}
-          >
+        <Field label="backup">
+          <button type="button" className={primaryButtonClass} onClick={downloadBackup}>
             download Catalog backup
           </button>
+        </Field>
+        <Field label="restore">
+          <FileChooser fileRef={fileRef} fileName={fileName} onFileChange={(name) => setFileName(name)} />
+        </Field>
+        <div className="flex flex-wrap items-center gap-2 pl-[8.75rem]">
+          <button type="button" className={secondaryButtonClass} onClick={() => onRestore("merge")}>
+            restore (merge)
+          </button>
+          <button type="button" className={secondaryButtonClass} onClick={() => onRestore("replace")}>
+            restore (replace)
+          </button>
         </div>
-        <div className="space-y-2">
-          <input ref={fileRef} type="file" accept="application/json" className="text-xs" />
-          <div className="flex gap-2">
-            <button className="bg-zinc-800 px-3 py-1 text-xs hover:bg-zinc-700" onClick={() => onRestore("merge")}>
-              restore (merge)
-            </button>
-            <button className="bg-zinc-800 px-3 py-1 text-xs hover:bg-zinc-700" onClick={() => onRestore("replace")}>
-              restore (replace)
-            </button>
-          </div>
-          {restoreMessage && <p className="text-xs text-zinc-400">{restoreMessage}</p>}
-          <p className="text-xs text-zinc-500">Catalog only — Tales, Scenes, and Beats stay on this server.</p>
-        </div>
+        {restoreMessage && <p className="pl-[8.75rem] text-xs text-zinc-400">{restoreMessage}</p>}
+        <p className="pl-[8.75rem] text-xs text-zinc-500">
+          Catalog only — Tales, Scenes, and Beats stay on this server.
+        </p>
       </Section>
 
-      <footer className="sticky bottom-0 flex items-center gap-3 border-t border-zinc-800 bg-zinc-950 py-3">
-        <button
-          className="bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
-          onClick={save}
-          disabled={!dirty || saving}
-        >
+      <footer className="sticky bottom-0 -mx-6 flex items-center gap-3 border-t border-zinc-800 bg-zinc-950/95 px-6 py-3 backdrop-blur">
+        <button type="button" className={primaryButtonClass} onClick={save} disabled={!dirty || saving}>
           {saving ? "saving…" : "save"}
         </button>
         <button
-          className="text-xs text-zinc-500 hover:text-zinc-200 disabled:opacity-50"
+          type="button"
+          className="cursor-pointer text-xs text-zinc-500 transition-colors duration-200 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
           onClick={() => setDraft(settings)}
           disabled={!dirty}
         >
@@ -239,16 +236,47 @@ export const Settings = () => {
   );
 };
 
+const inputBase =
+  "border border-zinc-800 bg-zinc-900 px-2 py-1 text-zinc-100 outline-none transition-colors duration-200 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600";
+const inputClass = `w-64 ${inputBase}`;
+const inputClassWide = `w-96 ${inputBase}`;
+const primaryButtonClass =
+  "cursor-pointer whitespace-nowrap bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-900 transition-colors duration-200 hover:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-50";
+const secondaryButtonClass =
+  "cursor-pointer whitespace-nowrap border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-200 transition-colors duration-200 hover:border-zinc-600 hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950";
+
+type FileChooserProps = {
+  fileRef: React.RefObject<HTMLInputElement>;
+  fileName: string | null;
+  onFileChange: (name: string | null) => void;
+};
+
+const FileChooser = ({ fileRef, fileName, onFileChange }: FileChooserProps) => (
+  <div className="flex items-center gap-2">
+    <button type="button" className={secondaryButtonClass} onClick={() => fileRef.current?.click()}>
+      choose file…
+    </button>
+    <span className="text-xs text-zinc-500">{fileName ?? "no file selected"}</span>
+    <input
+      ref={fileRef}
+      type="file"
+      accept="application/json"
+      className="hidden"
+      onChange={(e) => onFileChange(e.target.files?.[0]?.name ?? null)}
+    />
+  </div>
+);
+
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="space-y-2">
     <h2 className="font-serif text-base text-zinc-200">{title}</h2>
-    <div className="space-y-2 border border-zinc-800 p-4">{children}</div>
+    <div className="space-y-3 border border-zinc-800 bg-zinc-900/40 p-4">{children}</div>
   </section>
 );
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <label className="flex items-center gap-3">
-    <span className="w-32 text-xs uppercase tracking-wide text-zinc-500">{label}</span>
+  <label className="flex items-start gap-3">
+    <span className="w-32 shrink-0 pt-1 text-xs uppercase tracking-wide text-zinc-400">{label}</span>
     <span className="flex-1">{children}</span>
   </label>
 );

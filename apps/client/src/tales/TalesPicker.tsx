@@ -29,7 +29,11 @@ export const TalesPicker = () => {
     <aside className="flex h-full w-60 flex-col border-r border-zinc-800">
       <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2">
         <span className="font-serif text-sm text-zinc-300">Tales</span>
-        <button className="text-xs text-zinc-400 hover:text-zinc-100" onClick={() => setCreating(true)}>
+        <button
+          type="button"
+          className="cursor-pointer whitespace-nowrap text-xs text-zinc-400 transition-colors duration-200 hover:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+          onClick={() => setCreating(true)}
+        >
           + new
         </button>
       </header>
@@ -37,7 +41,8 @@ export const TalesPicker = () => {
         {creating && (
           <li className="border-b border-zinc-900 p-2">
             <input
-              className="w-full bg-zinc-900 px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-zinc-600"
+              autoFocus
+              className="w-full border border-zinc-800 bg-zinc-900 px-2 py-1 text-sm outline-none transition-colors duration-200 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600"
               placeholder="tale name"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -55,11 +60,15 @@ export const TalesPicker = () => {
         {tales.map((t) => (
           <li
             key={t.id}
-            className={`group flex items-center justify-between border-b border-zinc-900 hover:bg-zinc-900 ${
+            className={`group flex items-center justify-between border-b border-zinc-900 transition-colors duration-200 hover:bg-zinc-900 ${
               activeTaleId === t.id ? "bg-zinc-900 text-zinc-50" : "text-zinc-300"
             }`}
           >
-            <button type="button" onClick={() => selectTale(t.id)} className="flex flex-1 flex-col px-3 py-2 text-left">
+            <button
+              type="button"
+              onClick={() => selectTale(t.id)}
+              className="flex flex-1 cursor-pointer flex-col px-3 py-2 text-left focus:outline-none focus:ring-1 focus:ring-inset focus:ring-zinc-600"
+            >
               <span className="text-sm">{t.name}</span>
               <span className="text-[11px] text-zinc-500">
                 {t.sceneCount} scene{t.sceneCount === 1 ? "" : "s"}
@@ -67,7 +76,8 @@ export const TalesPicker = () => {
             </button>
             <button
               type="button"
-              className="invisible pr-3 text-xs text-zinc-500 hover:text-rose-400 group-hover:visible"
+              aria-label={`delete tale ${t.name}`}
+              className="invisible cursor-pointer pr-3 text-xs text-zinc-500 transition-colors duration-200 hover:text-rose-400 group-hover:visible focus:visible"
               onClick={() => {
                 if (confirm(`Delete tale "${t.name}"? Scenes and beats will be lost.`)) deleteTale(t.id);
               }}
@@ -77,7 +87,16 @@ export const TalesPicker = () => {
           </li>
         ))}
         {tales.length === 0 && !creating && (
-          <li className="p-4 text-xs text-zinc-600">No tales yet — start with + new.</li>
+          <li className="flex flex-col items-center gap-3 p-6 text-center">
+            <p className="text-xs text-zinc-500">No tales yet.</p>
+            <button
+              type="button"
+              className="cursor-pointer whitespace-nowrap border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-200 transition-colors duration-200 hover:border-zinc-600 hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
+              onClick={() => setCreating(true)}
+            >
+              + new tale
+            </button>
+          </li>
         )}
       </ul>
     </aside>

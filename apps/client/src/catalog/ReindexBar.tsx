@@ -37,9 +37,19 @@ export const ReindexBar = () => {
 
   const summary = embedderSummary(embedder);
 
+  const dotClass: Record<EmbedderStatus["state"], string> = {
+    idle: "bg-zinc-600",
+    loading: "bg-amber-400 animate-pulse",
+    ready: "bg-emerald-400",
+    error: "bg-rose-400",
+  };
+
   return (
     <div className="flex items-center gap-3 border-b border-zinc-800 px-3 py-2 text-xs text-zinc-400">
-      <span>{summary}</span>
+      <span className="inline-flex items-center gap-2">
+        <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${dotClass[embedder.state]}`} />
+        <span>{summary}</span>
+      </span>
       {progress && (
         <span className="text-zinc-300">
           indexing {progress.done}/{progress.total}
@@ -49,7 +59,8 @@ export const ReindexBar = () => {
       {error && <span className="text-rose-400">error: {error}</span>}
       <span className="flex-1" />
       <button
-        className="bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
+        type="button"
+        className="cursor-pointer whitespace-nowrap bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-900 transition-colors duration-200 hover:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
         onClick={start}
         disabled={running}
       >

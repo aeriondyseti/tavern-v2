@@ -35,7 +35,8 @@ export const EntryList = () => {
           onChange={(e) => setFilter(e.target.value)}
         />
         <button
-          className="bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
+          type="button"
+          className="shrink-0 whitespace-nowrap bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
           disabled={!selectedType}
           title={!selectedType ? "Select a type first" : "Create a new entry"}
           onClick={() => selectEntry(NEW_ENTRY_SENTINEL)}

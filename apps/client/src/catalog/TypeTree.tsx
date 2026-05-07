@@ -4,7 +4,13 @@ import { useCatalog } from "./store.js";
 import type { KindId } from "./types.js";
 
 export const TypeTree = () => {
-  const { kinds, types, selectedTypeId, selectType, createType, deleteType, renameType } = useCatalog();
+  const kinds = useCatalog((s) => s.kinds);
+  const types = useCatalog((s) => s.types);
+  const selectedTypeId = useCatalog((s) => s.selectedTypeId);
+  const selectType = useCatalog((s) => s.selectType);
+  const createType = useCatalog((s) => s.createType);
+  const deleteType = useCatalog((s) => s.deleteType);
+  const renameType = useCatalog((s) => s.renameType);
   const [adding, setAdding] = useState<KindId | null>(null);
   const [draftName, setDraftName] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -37,19 +43,24 @@ export const TypeTree = () => {
           <div key={k.id} className="border-b border-zinc-800">
             <header className="flex items-center justify-between px-3 py-2">
               <span className="font-serif text-zinc-300">{k.label}</span>
-              <button className="text-xs text-zinc-500 hover:text-zinc-200" onClick={() => setAdding(k.id as KindId)}>
+              <button
+                type="button"
+                className="cursor-pointer whitespace-nowrap text-xs text-zinc-500 transition-colors duration-200 hover:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+                onClick={() => setAdding(k.id as KindId)}
+              >
                 + new
               </button>
             </header>
             <ul>
               <li>
                 <button
-                  className={`flex w-full items-center gap-2 px-3 py-1 text-left text-zinc-500 hover:bg-zinc-900 ${
-                    selectedTypeId === null ? "bg-zinc-900 text-zinc-200" : ""
+                  type="button"
+                  className={`flex w-full cursor-pointer items-center gap-2 px-3 py-1 text-left text-xs italic transition-colors duration-200 hover:bg-zinc-900 ${
+                    selectedTypeId === null ? "bg-zinc-900 text-zinc-200" : "text-zinc-500"
                   }`}
                   onClick={() => selectType(null)}
                 >
-                  <span className="opacity-50">all {k.label.toLowerCase()}</span>
+                  all {k.label.toLowerCase()}
                 </button>
               </li>
               {kindTypes.map((t) => (
@@ -71,7 +82,7 @@ export const TypeTree = () => {
                     />
                   ) : (
                     <div
-                      className={`group flex w-full items-center justify-between hover:bg-zinc-900 ${
+                      className={`group flex w-full items-center justify-between transition-colors duration-200 hover:bg-zinc-900 ${
                         selectedTypeId === t.id ? "bg-zinc-900 text-zinc-50" : "text-zinc-300"
                       }`}
                       onDoubleClick={() => {
@@ -79,12 +90,17 @@ export const TypeTree = () => {
                         setRenameDraft(t.name);
                       }}
                     >
-                      <button type="button" className="flex-1 px-3 py-1 text-left" onClick={() => selectType(t.id)}>
+                      <button
+                        type="button"
+                        className="flex-1 cursor-pointer px-3 py-1 text-left focus:outline-none focus:ring-1 focus:ring-inset focus:ring-zinc-600"
+                        onClick={() => selectType(t.id)}
+                      >
                         <span>{t.name}</span>
                       </button>
                       <button
                         type="button"
-                        className="invisible pr-3 text-xs text-zinc-500 hover:text-rose-400 group-hover:visible"
+                        aria-label={`delete ${t.name}`}
+                        className="invisible cursor-pointer pr-3 text-xs text-zinc-500 transition-colors duration-200 hover:text-rose-400 group-hover:visible focus:visible"
                         onClick={() => {
                           if (confirm(`Delete type "${t.name}" and all its entries?`)) deleteType(t.id);
                         }}
