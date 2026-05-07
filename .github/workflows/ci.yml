@@ -30,9 +30,12 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: pnpm/action-setup@v4
-        with: { version: 9 }
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -40,4 +43,44 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: echo "publish step lands in M7"
+
+      # On dev: tag the published versions with -dev.<run_number> and the @dev npm tag.
+      - name: Apply dev version suffix
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          BASE=$(node -p "require('./apps/server/package.json').version")
+          DEV_VERSION="${BASE}-dev.${GITHUB_RUN_NUMBER}"
+          pnpm --filter @tavern/shared exec npm version --no-git-tag-version "${DEV_VERSION}"
+          pnpm --filter tavern exec npm version --no-git-tag-version "${DEV_VERSION}"
+          echo "PUBLISH_TAG=dev" >> "$GITHUB_ENV"
+          echo "PUBLISH_VERSION=${DEV_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Set latest tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          VERSION=$(node -p "require('./apps/server/package.json').version")
+          echo "PUBLISH_TAG=latest" >> "$GITHUB_ENV"
+          echo "PUBLISH_VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          pnpm --filter @tavern/shared publish --no-git-checks --tag "${PUBLISH_TAG}"
+          pnpm --filter tavern publish --no-git-checks --tag "${PUBLISH_TAG}"
+
+      - name: Tag release (main)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${PUBLISH_VERSION}"
+          git push origin "v${PUBLISH_VERSION}"
+          gh release create "v${PUBLISH_VERSION}" --generate-notes
+
+      - name: Reset dev to main (main)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git push origin "HEAD:dev" --force

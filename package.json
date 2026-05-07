@@ -10,8 +10,8 @@
   },
   "packageManager": "pnpm@9.12.0",
   "scripts": {
-    "dev": "pnpm --parallel -r dev",
-    "build": "pnpm -r build",
+    "dev": "pnpm --filter @tavern/shared build && pnpm --parallel -r dev",
+    "build": "pnpm --filter @tavern/shared build && pnpm --filter @tavern/client build && pnpm --filter tavern build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test"
   },

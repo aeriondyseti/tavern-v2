@@ -1,14 +1,25 @@
 {
   "name": "@tavern/shared",
   "version": "0.0.0",
-  "private": true,
+  "private": false,
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w --preserveWatchOutput",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

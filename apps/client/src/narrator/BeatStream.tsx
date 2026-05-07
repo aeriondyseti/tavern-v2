@@ -14,6 +14,17 @@ export const BeatStream = ({ sceneId, sceneName }: Props) => {
     void loadBeats(sceneId);
   }, [sceneId, loadBeats]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const target = e.target as HTMLElement | null;
+      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
+      if (live.streaming) cancelLive();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [live.streaming, cancelLive]);
+
   const beats = bySceneId[sceneId] ?? [];
   const streaming = live.streaming;
 
