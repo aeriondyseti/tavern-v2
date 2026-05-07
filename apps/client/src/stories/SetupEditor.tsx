@@ -15,7 +15,7 @@ const TIER_LABEL: Record<DirectionTier, string> = {
 type Props = {
   value: SetupData;
   onChange: (next: SetupData) => void;
-  scope: "tale" | "scene";
+  scope: "story" | "scene";
 };
 
 export const SetupEditor = ({ value, onChange, scope }: Props) => {
@@ -77,7 +77,7 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
     <section className="space-y-6">
       <header className="flex items-center justify-between">
         <h3 className="font-serif text-sm uppercase tracking-wide text-zinc-300">
-          {scope === "tale" ? "Tale setup" : "Scene adjustments"}
+          {scope === "story" ? "Story setup" : "Scene adjustments"}
         </h3>
         <div className="flex gap-2">
           <button

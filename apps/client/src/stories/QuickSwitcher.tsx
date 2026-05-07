@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { useTales } from "./store.js";
+import { useStories } from "./store.js";
 
 export const QuickSwitcher = () => {
   const navigate = useNavigate();
-  const tales = useTales((s) => s.tales);
-  const loadList = useTales((s) => s.loadList);
-  const selectTale = useTales((s) => s.selectTale);
+  const stories = useStories((s) => s.stories);
+  const loadList = useStories((s) => s.loadList);
+  const selectStory = useStories((s) => s.selectStory);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -40,15 +40,15 @@ export const QuickSwitcher = () => {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return tales;
-    return tales.filter((t) => t.name.toLowerCase().includes(q));
-  }, [query, tales]);
+    if (!q) return stories;
+    return stories.filter((t) => t.name.toLowerCase().includes(q));
+  }, [query, stories]);
 
   if (!open) return null;
 
   const select = async (id: string) => {
     setOpen(false);
-    await selectTale(id);
+    await selectStory(id);
     navigate("/play");
   };
 
@@ -76,7 +76,7 @@ export const QuickSwitcher = () => {
         <input
           ref={inputRef}
           className="w-full bg-zinc-900 px-3 py-2 text-sm outline-none placeholder:text-zinc-600"
-          placeholder="Switch to tale…"
+          placeholder="Switch to story…"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -86,7 +86,9 @@ export const QuickSwitcher = () => {
         />
         <ul className="max-h-80 overflow-y-auto border-t border-zinc-800">
           {filtered.length === 0 && (
-            <li className="px-3 py-2 text-xs text-zinc-600">{tales.length === 0 ? "No tales yet." : "No matches."}</li>
+            <li className="px-3 py-2 text-xs text-zinc-600">
+              {stories.length === 0 ? "No stories yet." : "No matches."}
+            </li>
           )}
           {filtered.map((t, i) => (
             <li key={t.id}>

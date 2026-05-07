@@ -20,9 +20,9 @@ items at the end are explicit; nothing else should be invented at code time.
 | Connections | `brings` only; transitive with configurable depth cap; cycle-broken |
 | Composition model | Agent-native (option B): SDK runs the loop; Tavern composes system prompt + recent Beats |
 | Marks | Dropped |
-| Pinned | Tale-level and Scene-level; Scene overrides Tale; rendered as system-generated lookup instructions |
+| Pinned | Story-level and Scene-level; Scene overrides Story; rendered as system-generated lookup instructions |
 | Active Directions ordering | Priority tiers (Absolute / Strong / Normal / Background) + manual order within tier |
-| Tale switching | One active Tale; Cmd-K quick-switcher |
+| Story switching | One active Story; Cmd-K quick-switcher |
 | Catalog finder | In-Catalog filter bar only |
 | Anchor format | Free-form prose with optional Facets |
 | Beat operations | Reroll, edit Narrator response in place, edit player input + regenerate |
@@ -166,10 +166,10 @@ Notes:
 - `direction_tier` is a side table rather than a column on `entries` because tiers are
   Direction-only.
 
-### 5.2 Tales / Scenes / Beats / Setups
+### 5.2 Stories / Scenes / Beats / Setups
 
 ```
-tales
+stories
   id           text pk
   name         text
   description  text
@@ -179,10 +179,10 @@ tales
   created_at   int
   updated_at   int
 
-anchor_facets               -- optional structured facets attached to tale anchor
+anchor_facets               -- optional structured facets attached to story anchor
   id           text pk
-  tale_id      text fk → tales.id (cascade)
-  scene_id     text fk → scenes.id null  -- null = tale anchor; non-null = scene anchor add-on
+  story_id      text fk → stories.id (cascade)
+  scene_id     text fk → scenes.id null  -- null = story anchor; non-null = scene anchor add-on
   label        text
   body         text
   mode         text          -- 'always' | 'cue' (parallels entry facets)
@@ -190,25 +190,25 @@ anchor_facets               -- optional structured facets attached to tale ancho
 
 scenes
   id           text pk
-  tale_id      text fk → tales.id
+  story_id      text fk → stories.id
   name         text
-  anchor_prose text          -- appended to tale anchor when this scene is active
+  anchor_prose text          -- appended to story anchor when this scene is active
   adjustments_id text fk → setups.id null
   position     int
   created_at   int
 
-setups                      -- used as Tale.setup or Scene.adjustments
+setups                      -- used as Story.setup or Scene.adjustments
   id           text pk
-  scope        text          -- 'tale' | 'scene'
+  scope        text          -- 'story' | 'scene'
   data         json          -- see §5.3
 
-pinned                      -- tale-level OR scene-level (mutually exclusive per row)
+pinned                      -- story-level OR scene-level (mutually exclusive per row)
   id           text pk
-  tale_id      text fk → tales.id null
+  story_id      text fk → stories.id null
   scene_id     text fk → scenes.id null
   entry_id     text fk → entries.id
   position     int
-  check (tale_id is not null or scene_id is not null)
+  check (story_id is not null or scene_id is not null)
 
 beats
   id           text pk
@@ -271,9 +271,9 @@ type SetupData = {
 ```
 
 Scene adjustments are stored as a full `SetupData` (not a sparse delta). The composition
-rule is **Scene replaces Tale**: if the Scene has an `adjustments_id`, that document is
-the effective Setup for the Beat. Otherwise the Tale's Setup is used. Rationale: simpler
-than diffing, and we already accept Scene-overrides-Tale semantics for Pinned.
+rule is **Scene replaces Story**: if the Scene has an `adjustments_id`, that document is
+the effective Setup for the Beat. Otherwise the Story's Setup is used. Rationale: simpler
+than diffing, and we already accept Scene-overrides-Story semantics for Pinned.
 
 ### 5.4 Settings table (singleton)
 
@@ -306,19 +306,19 @@ entry list (name, type, with-cue-text). No Cmd-K palette; finder is in-Catalog o
 
 ### 6.2 Play `/play`
 
-Single active Tale. Layout:
+Single active Story. Layout:
 
-- **Top**: Tale name, anchor preview, active Scene name, Setup summary (counts by tier,
-  pinned count), `Switch Tale` (Cmd-K), `Settings` link.
+- **Top**: Story name, anchor preview, active Scene name, Setup summary (counts by tier,
+  pinned count), `Switch Story` (Cmd-K), `Settings` link.
 - **Center**: Beat stream — past Beats rendered as alternating user/Narrator blocks;
   composer at bottom.
 - **Right rail (collapsible)**: Setup controls — Direction toggles grouped by tier with
   drag-to-reorder; live changes are session-only until the user clicks "Save to Scene
   Adjustments" (button only enabled when there are unsaved changes). Pinned list editor
-  (Tale or Scene, tab toggle). Retrieval/tools/model panels collapsed by default.
+  (Story or Scene, tab toggle). Retrieval/tools/model panels collapsed by default.
 - **Bottom rail**: Debug panel (collapsible, off by default).
 
-Cmd-K opens a Tales-only switcher. (No global Catalog palette per decision.)
+Cmd-K opens a Stories-only switcher. (No global Catalog palette per decision.)
 
 Beat composer keys: Enter sends; Shift-Enter newline; Esc cancels active stream.
 
@@ -332,7 +332,7 @@ Sections:
 - **Provider**: OAuth status (`✓ logged in as <profile>` / `✗ not logged in`). Button:
   "Re-run claude login" — server runs the CLI and surfaces output.
 - **Defaults**: default model, default temperature, default max_tokens, default thinking
-  budget. New Tales pick these up; existing Tales unaffected.
+  budget. New Stories pick these up; existing Stories unaffected.
 - **Embeddings**: provider toggle (local | api). Local model picker (`bge-small`,
   `all-MiniLM-L6-v2`, custom). API endpoint URL + key. "Reindex all" action; warns if
   switching models.
@@ -346,9 +346,9 @@ Per-Beat. Ephemeral.
 
 ### 7.1 High-level
 
-1. Client POSTs `/api/tales/:id/beats` with `{ player_input }`.
+1. Client POSTs `/api/stories/:id/beats` with `{ player_input }`.
 2. Server creates a `beats` row (status `streaming`).
-3. Server resolves the effective Setup (Scene adjustments if present, else Tale Setup).
+3. Server resolves the effective Setup (Scene adjustments if present, else Story Setup).
 4. Server composes the system prompt (§7.2) and the message list (§7.3).
 5. Server constructs the MCP tool surface (§8) honoring `setup.tools.*` flags.
 6. Server invokes the Claude Agent SDK with system prompt, messages, tools, model+gen
@@ -382,8 +382,8 @@ Maintain that wall.
 {{same for setup.directions.background}}
 
 <anchor>
-Tale: {{tale.anchor_prose}}
-{{flatten tale anchor_facets where mode='always'}}
+Story: {{story.anchor_prose}}
+{{flatten story anchor_facets where mode='always'}}
 {{if scene}}Scene: {{scene.anchor_prose}}{{flatten scene anchor_facets where mode='always'}}{{end}}
 
 <pinned-lookups>
@@ -408,7 +408,7 @@ The current Beat's `player_input` is the trailing user message.
 
 ### 7.4 Pinned lookup block
 
-If the active Scene has any `pinned` rows, **only** those render. Otherwise the Tale's
+If the active Scene has any `pinned` rows, **only** those render. Otherwise the Story's
 `pinned` rows render. Format (system-generated, fixed phrasing):
 
 ```
@@ -501,7 +501,7 @@ embedded label (server-side semantic fallback). Always-on facets always included
 ### 8.3 `list_active_directions` / `list_pinned`
 
 Both straightforward read-throughs of the effective Setup / Pinned. Used by the agent to
-introspect; off by default for stricter "discover-style" Tales is configurable in Setup.
+introspect; off by default for stricter "discover-style" Stories is configurable in Setup.
 
 ### 8.4 Search call provenance
 
@@ -525,7 +525,7 @@ Surfaced verbatim in the Debug panel.
 
 ## 9. Streaming protocol (SSE)
 
-`POST /api/tales/:id/beats` with `{ player_input: string, regenerate_of?: string }`.
+`POST /api/stories/:id/beats` with `{ player_input: string, regenerate_of?: string }`.
 Returns `text/event-stream`. Events:
 
 | event | data | when |
@@ -605,12 +605,12 @@ Client reroll/edit endpoints:
   entries.
 - `replace`: drops all rows in the seven Catalog tables, then inserts.
 
-Tales/Scenes/Beats/Settings are never exported or imported.
+Stories/Scenes/Beats/Settings are never exported or imported.
 
 ## 13. Performance and density targets
 
 - Tens of types per Kind, hundreds of entries per type → ~10⁴ entries worst case.
-- Hundreds of Tales; thousands of Beats per long-running Tale → ~10⁶ beats lifetime.
+- Hundreds of Stories; thousands of Beats per long-running Story → ~10⁶ beats lifetime.
 - BM25 over Catalog: sqlite FTS5 virtual table mirroring `entries` searchable columns.
 - Embedding ANN: at this scale, brute-force cosine over f32 vectors is fine
   (10⁴ × 384 dims × 4 bytes ≈ 15 MB in memory). Re-load on server start; mutate on
@@ -625,7 +625,7 @@ Tales/Scenes/Beats/Settings are never exported or imported.
 - Branching alt timelines (only flat alts per Beat).
 - Agent writes to Catalog.
 - Multi-character / multiplayer.
-- Cross-Tale search.
+- Cross-Story search.
 - History summarization once recent-window overflows.
 - PWA / mobile layouts.
 - Tauri/Electron desktop wrapper.
@@ -686,7 +686,7 @@ A reasonable order to stand this up:
    No embeddings yet.
 3. **M2 — Embeddings & search.** transformers.js wired in, FTS5, scoring, "Reindex all".
    Search exposed as a debug-only endpoint.
-4. **M3 — Tales/Scenes/Setups.** Tale + Scene CRUD, Setup editor (Directions, Pinned,
+4. **M3 — Stories/Scenes/Setups.** Story + Scene CRUD, Setup editor (Directions, Pinned,
    model/gen params, retrieval defaults).
 5. **M4 — Narrator loop.** MCP tools (`search_world`, `get_entry`,
    `list_active_directions`, `list_pinned`); SDK invocation; SSE; Beat creation + debug
@@ -694,4 +694,4 @@ A reasonable order to stand this up:
 6. **M5 — Beat ops.** Reroll, edit Narrator, edit player + regenerate.
 7. **M6 — Settings + backup/restore.** OAuth status, embeddings config, defaults,
    Catalog export/import.
-8. **M7 — Polish.** Cmd-K Tale switcher, keyboard shortcuts, visual density pass.
+8. **M7 — Polish.** Cmd-K Story switcher, keyboard shortcuts, visual density pass.

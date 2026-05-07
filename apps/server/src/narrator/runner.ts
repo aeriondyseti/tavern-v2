@@ -6,7 +6,7 @@ import { buildNarratorMcpServer } from "./mcp.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 
 export type RunNarratorArgs = {
-  taleId: string;
+  storyId: string;
   sceneId: string | null;
   setup: SetupData;
   systemPrompt: string;
@@ -73,7 +73,7 @@ export const runNarrator = async (db: Db, args: RunNarratorArgs): Promise<RunRes
   };
 
   const mcp = buildNarratorMcpServer(db, {
-    taleId: args.taleId,
+    storyId: args.storyId,
     sceneId: args.sceneId,
     setup: args.setup,
     recorder,

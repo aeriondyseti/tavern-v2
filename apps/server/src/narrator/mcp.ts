@@ -6,14 +6,14 @@ import * as repo from "../catalog/repo.js";
 import { searchWorld } from "../catalog/search.js";
 import type { Db } from "../db/client.js";
 import { entries, facets } from "../db/schema.js";
-import { effectivePinned } from "../tales/repo.js";
+import { effectivePinned } from "../stories/repo.js";
 
 export type ToolRecorder = {
   pushSearchCall: (rec: SearchCallRecord) => void;
 };
 
 export type NarratorContext = {
-  taleId: string;
+  storyId: string;
   sceneId: string | null;
   setup: SetupData;
   recorder: ToolRecorder;
@@ -130,10 +130,10 @@ export const buildNarratorMcpServer = (db: Db, ctx: NarratorContext) =>
       ),
       tool(
         "list_pinned",
-        "List the entries pinned for this Tale (or this Scene, if Scene-level pins are set).",
+        "List the entries pinned for this Story (or this Scene, if Scene-level pins are set).",
         {},
         async () => {
-          const list = effectivePinned(db, ctx.taleId, ctx.sceneId);
+          const list = effectivePinned(db, ctx.storyId, ctx.sceneId);
           return textResult({
             pinned: list.map((p) => ({
               id: p.entryId,

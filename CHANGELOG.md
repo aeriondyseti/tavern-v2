@@ -32,12 +32,12 @@ All notable changes to this project are documented here. The format is based on
   three-pane editor.
 - M2: Embeddings (bge-small q8 via `@huggingface/transformers`) + hybrid search
   (FTS5 + cosine) with `brings` expansion.
-- M3: Tales / Scenes / Setups with Setup, Pinned, Anchor, and Scenes editors.
+- M3: Stories / Scenes / Setups with Setup, Pinned, Anchor, and Scenes editors.
 - M4: Narrator loop — in-process MCP server with four read-only tools, system
   prompt composer, Claude Agent SDK runner, SSE Beats.
 - M5: Beat ops — reroll, edit-narrator, edit-player + regenerate, alt
   navigator.
 - M6: Settings + Catalog backup/restore (Zod-validated, child-row ids
   regenerated on merge).
-- M7: Polish — Cmd-K Tale switcher, global Esc cancel, single-binary publish
+- M7: Polish — Cmd-K Story switcher, global Esc cancel, single-binary publish
   via `copy-client.mjs`, CI publish workflow.

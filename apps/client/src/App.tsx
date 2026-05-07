@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
-
+import { QuickSwitcher } from "./stories/QuickSwitcher.js";
 import { Catalog } from "./surfaces/Catalog.js";
 import { Play } from "./surfaces/Play.js";
 import { Settings } from "./surfaces/Settings.js";
-import { QuickSwitcher } from "./tales/QuickSwitcher.js";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `cursor-pointer px-2.5 py-1 text-xs uppercase tracking-wide transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-zinc-600 ${
@@ -63,7 +62,7 @@ export const App = () => {
         <span className="flex items-center gap-3 text-[10px] text-zinc-500">
           <span className="inline-flex items-center gap-1.5 rounded-sm border border-zinc-800 px-1.5 py-0.5 font-mono text-zinc-400">
             <span aria-hidden="true">{switcherHint}</span>
-            <span className="text-zinc-500">switch tale</span>
+            <span className="text-zinc-500">switch story</span>
           </span>
           <span
             className="inline-flex items-center gap-1.5"

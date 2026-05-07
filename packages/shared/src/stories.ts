@@ -20,13 +20,13 @@ export type SceneSummary = {
 };
 
 export type Scene = SceneSummary & {
-  taleId: string;
+  storyId: string;
   adjustments: SetupData | null;
   pinned: PinnedEntry[];
   anchorFacets: AnchorFacet[];
 };
 
-export type TaleSummary = {
+export type StorySummary = {
   id: string;
   name: string;
   description: string;
@@ -37,7 +37,7 @@ export type TaleSummary = {
   updatedAt: number;
 };
 
-export type Tale = TaleSummary & {
+export type Story = StorySummary & {
   setup: SetupData;
   scenes: SceneSummary[];
   pinned: PinnedEntry[];

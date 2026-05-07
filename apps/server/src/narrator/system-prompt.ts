@@ -2,8 +2,8 @@ import type { DirectionTier, SetupData } from "@tavern/shared";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 
 import type { Db } from "../db/client.js";
-import { anchorFacets, entries, facets, scenes, tales, types } from "../db/schema.js";
-import { effectivePinned } from "../tales/repo.js";
+import { anchorFacets, entries, facets, scenes, stories, types } from "../db/schema.js";
+import { effectivePinned } from "../stories/repo.js";
 
 const STANCE = `You are the Narrator: a game-master, never a character. The user plays; you tell. Maintain that wall.`;
 
@@ -43,16 +43,16 @@ const renderDirections = (db: Db, ids: string[]): DirectionRendered[] => {
     });
 };
 
-const renderAnchor = (db: Db, taleId: string, taleProse: string, sceneProse: string | null): string[] => {
+const renderAnchor = (db: Db, storyId: string, storyProse: string, sceneProse: string | null): string[] => {
   const lines: string[] = [];
-  if (taleProse.trim()) lines.push(`Tale: ${taleProse.trim()}`);
-  const taleFacets = db
+  if (storyProse.trim()) lines.push(`Story: ${storyProse.trim()}`);
+  const storyFacets = db
     .select()
     .from(anchorFacets)
-    .where(sql`${anchorFacets.taleId} = ${taleId} AND ${anchorFacets.sceneId} IS NULL`)
+    .where(sql`${anchorFacets.storyId} = ${storyId} AND ${anchorFacets.sceneId} IS NULL`)
     .orderBy(asc(anchorFacets.position))
     .all();
-  for (const f of taleFacets) {
+  for (const f of storyFacets) {
     if (f.body.trim()) lines.push(`  ${f.label}: ${f.body}`);
     else lines.push(`  ${f.label}`);
   }
@@ -64,8 +64,8 @@ const renderAnchor = (db: Db, taleId: string, taleProse: string, sceneProse: str
 
 type PinnedRendered = { entryId: string; name: string; typeName: string };
 
-const renderPinned = (db: Db, taleId: string, sceneId: string | null): PinnedRendered[] => {
-  const list = effectivePinned(db, taleId, sceneId);
+const renderPinned = (db: Db, storyId: string, sceneId: string | null): PinnedRendered[] => {
+  const list = effectivePinned(db, storyId, sceneId);
   if (list.length === 0) return [];
   const typeIds = [...new Set(list.map((p) => p.typeId))];
   const typeRows = db.select({ id: types.id, name: types.name }).from(types).where(inArray(types.id, typeIds)).all();
@@ -86,10 +86,10 @@ export type ComposedSystemPrompt = {
 
 export const composeSystemPrompt = (
   db: Db,
-  args: { taleId: string; sceneId: string | null; setup: SetupData },
+  args: { storyId: string; sceneId: string | null; setup: SetupData },
 ): ComposedSystemPrompt => {
-  const tale = db.select().from(tales).where(eq(tales.id, args.taleId)).get();
-  if (!tale) throw new Error(`tale ${args.taleId} not found`);
+  const story = db.select().from(stories).where(eq(stories.id, args.storyId)).get();
+  if (!story) throw new Error(`story ${args.storyId} not found`);
   const scene = args.sceneId ? db.select().from(scenes).where(eq(scenes.id, args.sceneId)).get() : null;
 
   const directionsByTier: Record<DirectionTier, DirectionRendered[]> = {
@@ -99,8 +99,8 @@ export const composeSystemPrompt = (
     background: renderDirections(db, args.setup.directions.background),
   };
 
-  const anchorLines = renderAnchor(db, args.taleId, tale.anchorProse, scene?.anchorProse ?? null);
-  const pinnedRows = renderPinned(db, args.taleId, args.sceneId);
+  const anchorLines = renderAnchor(db, args.storyId, story.anchorProse, scene?.anchorProse ?? null);
+  const pinnedRows = renderPinned(db, args.storyId, args.sceneId);
 
   const sections: string[] = [STANCE];
   for (const tier of TIER_ORDER) {

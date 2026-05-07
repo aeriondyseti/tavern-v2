@@ -14,8 +14,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "tale_id": {
-          "name": "tale_id",
+        "story_id": {
+          "name": "story_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -53,10 +53,10 @@
         }
       },
       "indexes": {
-        "anchor_facets_tale_idx": {
-          "name": "anchor_facets_tale_idx",
+        "anchor_facets_story_idx": {
+          "name": "anchor_facets_story_idx",
           "columns": [
-            "tale_id"
+            "story_id"
           ],
           "isUnique": false
         },
@@ -69,12 +69,12 @@
         }
       },
       "foreignKeys": {
-        "anchor_facets_tale_id_tales_id_fk": {
-          "name": "anchor_facets_tale_id_tales_id_fk",
+        "anchor_facets_story_id_stories_id_fk": {
+          "name": "anchor_facets_story_id_stories_id_fk",
           "tableFrom": "anchor_facets",
-          "tableTo": "tales",
+          "tableTo": "stories",
           "columnsFrom": [
-            "tale_id"
+            "story_id"
           ],
           "columnsTo": [
             "id"
@@ -684,8 +684,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "tale_id": {
-          "name": "tale_id",
+        "story_id": {
+          "name": "story_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -715,10 +715,10 @@
         }
       },
       "indexes": {
-        "pinned_tale_idx": {
-          "name": "pinned_tale_idx",
+        "pinned_story_idx": {
+          "name": "pinned_story_idx",
           "columns": [
-            "tale_id"
+            "story_id"
           ],
           "isUnique": false
         },
@@ -731,12 +731,12 @@
         }
       },
       "foreignKeys": {
-        "pinned_tale_id_tales_id_fk": {
-          "name": "pinned_tale_id_tales_id_fk",
+        "pinned_story_id_stories_id_fk": {
+          "name": "pinned_story_id_stories_id_fk",
           "tableFrom": "pinned",
-          "tableTo": "tales",
+          "tableTo": "stories",
           "columnsFrom": [
-            "tale_id"
+            "story_id"
           ],
           "columnsTo": [
             "id"
@@ -776,7 +776,7 @@
       "checkConstraints": {
         "pinned_scope_check": {
           "name": "pinned_scope_check",
-          "value": "\"pinned\".\"tale_id\" IS NOT NULL OR \"pinned\".\"scene_id\" IS NOT NULL"
+          "value": "\"pinned\".\"story_id\" IS NOT NULL OR \"pinned\".\"scene_id\" IS NOT NULL"
         }
       }
     },
@@ -790,8 +790,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "tale_id": {
-          "name": "tale_id",
+        "story_id": {
+          "name": "story_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -837,21 +837,21 @@
         }
       },
       "indexes": {
-        "scenes_tale_idx": {
-          "name": "scenes_tale_idx",
+        "scenes_story_idx": {
+          "name": "scenes_story_idx",
           "columns": [
-            "tale_id"
+            "story_id"
           ],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "scenes_tale_id_tales_id_fk": {
-          "name": "scenes_tale_id_tales_id_fk",
+        "scenes_story_id_stories_id_fk": {
+          "name": "scenes_story_id_stories_id_fk",
           "tableFrom": "scenes",
-          "tableTo": "tales",
+          "tableTo": "stories",
           "columnsFrom": [
-            "tale_id"
+            "story_id"
           ],
           "columnsTo": [
             "id"
@@ -993,8 +993,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "tales": {
-      "name": "tales",
+    "stories": {
+      "name": "stories",
       "columns": {
         "id": {
           "name": "id",
@@ -1059,9 +1059,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "tales_setup_id_setups_id_fk": {
-          "name": "tales_setup_id_setups_id_fk",
-          "tableFrom": "tales",
+        "stories_setup_id_setups_id_fk": {
+          "name": "stories_setup_id_setups_id_fk",
+          "tableFrom": "stories",
           "tableTo": "setups",
           "columnsFrom": [
             "setup_id"

@@ -133,7 +133,9 @@ export const Settings = () => {
             }}
           />
         </Field>
-        <p className="text-xs text-ink-faint">New Tales pick these up. Existing Tales keep their per-Tale Setup.</p>
+        <p className="text-xs text-ink-faint">
+          New Stories pick these up. Existing Stories keep their per-Story Setup.
+        </p>
       </Section>
 
       <Section title="Embeddings">
@@ -214,7 +216,7 @@ export const Settings = () => {
         </div>
         {restoreMessage && <p className="pl-[8.75rem] text-xs text-ink-muted">{restoreMessage}</p>}
         <p className="pl-[8.75rem] text-xs text-ink-faint">
-          Catalog only — Tales, Scenes, and Beats stay on this server.
+          Catalog only — Stories, Scenes, and Beats stay on this server.
         </p>
       </Section>
 
