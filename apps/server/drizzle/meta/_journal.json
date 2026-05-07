@@ -15,6 +15,13 @@
       "when": 1778141631435,
       "tag": "0001_tales",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778142958498,
+      "tag": "0002_beats",
+      "breakpoints": true
     }
   ]
 }

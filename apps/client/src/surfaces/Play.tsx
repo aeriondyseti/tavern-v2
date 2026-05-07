@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import type { SetupData } from "@tavern/shared";
 
 import { useCatalog } from "../catalog/store.js";
+import { BeatStream } from "../narrator/BeatStream.js";
+import { DebugPanel } from "../narrator/DebugPanel.js";
+import { useNarrator } from "../narrator/store.js";
 import { AnchorEditor } from "../tales/AnchorEditor.js";
 import { PinnedEditor } from "../tales/PinnedEditor.js";
 import { ScenesPanel } from "../tales/ScenesPanel.js";
@@ -61,6 +64,34 @@ export const Play = () => {
   );
 };
 
+const BeatStreamPane = ({ scene }: { scene: Scene }) => {
+  const live = useNarrator((s) => s.live);
+  const [showDebug, setShowDebug] = useState(false);
+  const beats = useNarrator((s) => s.bySceneId[scene.id] ?? []);
+  const lastBeatId = beats.length > 0 ? beats[beats.length - 1]!.id : null;
+  const debugBeatId = live.beatId ?? lastBeatId;
+  return (
+    <div className="flex flex-1 flex-col">
+      <div className="flex-1 overflow-hidden">
+        <BeatStream sceneId={scene.id} sceneName={scene.name} />
+      </div>
+      <div className="flex items-center justify-end border-t border-zinc-800 px-3 py-1 text-xs">
+        <button
+          className="text-zinc-500 hover:text-zinc-200"
+          onClick={() => setShowDebug((v) => !v)}
+        >
+          {showDebug ? "hide debug" : "show debug"}
+        </button>
+      </div>
+      {showDebug && (
+        <div className="h-64 shrink-0">
+          <DebugPanel beatId={debugBeatId} />
+        </div>
+      )}
+    </div>
+  );
+};
+
 type DetailProps = {
   tale: Tale;
   scene: Scene | null;
@@ -97,8 +128,14 @@ const TaleDetail = ({
         {tale.description && <p className="text-xs text-zinc-500">{tale.description}</p>}
       </header>
       <div className="flex flex-1 overflow-hidden">
-        <section className="flex flex-1 items-center justify-center border-r border-zinc-800 p-6 text-sm text-zinc-600">
-          {scene ? `Open scene: ${scene.name}` : "Set or create an active scene to begin."}
+        <section className="flex flex-1 flex-col border-r border-zinc-800">
+          {scene ? (
+            <BeatStreamPane scene={scene} />
+          ) : (
+            <div className="flex flex-1 items-center justify-center text-sm text-zinc-600">
+              Set or create an active scene to begin.
+            </div>
+          )}
         </section>
         <aside className="w-[28rem] overflow-y-auto p-4">
           <nav className="mb-4 flex gap-2 border-b border-zinc-800">

@@ -212,6 +212,60 @@ export const anchorFacets = sqliteTable(
   }),
 );
 
+export const BEAT_STATUSES = ["streaming", "complete", "cancelled", "error"] as const;
+export type BeatStatus = (typeof BEAT_STATUSES)[number];
+
+export const beats = sqliteTable(
+  "beats",
+  {
+    id: text("id").primaryKey(),
+    sceneId: text("scene_id")
+      .notNull()
+      .references(() => scenes.id, { onDelete: "cascade" }),
+    position: integer("position").notNull().default(0),
+    playerInput: text("player_input").notNull(),
+    narratorOutput: text("narrator_output").notNull().default(""),
+    status: text("status", { enum: BEAT_STATUSES }).notNull().default("streaming"),
+    alts: text("alts", { mode: "json" })
+      .$type<Array<{ narratorOutput: string; transcriptId: string; createdAt: number }>>()
+      .notNull()
+      .default([]),
+    activeAlt: integer("active_alt").notNull().default(-1),
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+    completedAt: integer("completed_at"),
+  },
+  (t) => ({
+    sceneIdx: index("beats_scene_idx").on(t.sceneId),
+  }),
+);
+
+export const beatTranscripts = sqliteTable(
+  "beat_transcripts",
+  {
+    id: text("id").primaryKey(),
+    beatId: text("beat_id")
+      .notNull()
+      .references(() => beats.id, { onDelete: "cascade" }),
+    altIndex: integer("alt_index").notNull().default(-1),
+    requestBody: text("request_body", { mode: "json" }).$type<unknown>(),
+    events: text("events", { mode: "json" }).$type<unknown[]>().notNull().default([]),
+    searchCalls: text("search_calls", { mode: "json" })
+      .$type<unknown[]>()
+      .notNull()
+      .default([]),
+    model: text("model").notNull(),
+    durationMs: integer("duration_ms"),
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => ({
+    beatIdx: index("beat_transcripts_beat_idx").on(t.beatId),
+  }),
+);
+
 export type EntryRow = typeof entries.$inferSelect;
 export type FacetRow = typeof facets.$inferSelect;
 export type CueRow = typeof cues.$inferSelect;
@@ -223,3 +277,5 @@ export type SceneRow = typeof scenes.$inferSelect;
 export type SetupRow = typeof setups.$inferSelect;
 export type PinnedRow = typeof pinned.$inferSelect;
 export type AnchorFacetRow = typeof anchorFacets.$inferSelect;
+export type BeatRow = typeof beats.$inferSelect;
+export type BeatTranscriptRow = typeof beatTranscripts.$inferSelect;

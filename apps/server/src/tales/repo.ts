@@ -34,7 +34,7 @@ export type {
   TaleSummary,
 } from "@tavern/shared";
 
-type PinnedScope =
+export type PinnedScope =
   | { kind: "tale"; id: string }
   | { kind: "scene"; id: string };
 
@@ -80,6 +80,9 @@ const sceneSummary = (row: SceneRow, hasAdjustments: boolean): SceneSummary => (
   hasAdjustments,
   createdAt: row.createdAt,
 });
+
+export const listPinnedForScope = (db: Db, scope: PinnedScope): PinnedEntry[] =>
+  loadPinnedFor(db, scope);
 
 const loadPinnedFor = (db: Db, scope: PinnedScope): PinnedEntry[] => {
   const rows = db
@@ -286,6 +289,24 @@ export const deleteScene = (db: Db, id: string): boolean => {
       .run();
   });
   return true;
+};
+
+export const getEffectiveSetup = (
+  db: Db,
+  taleId: string,
+  sceneId: string | null,
+): SetupData | null => {
+  const tale = db.select().from(tales).where(eq(tales.id, taleId)).get();
+  if (!tale) return null;
+  if (sceneId) {
+    const scene = db.select().from(scenes).where(eq(scenes.id, sceneId)).get();
+    if (scene?.adjustmentsId) {
+      const adj = db.select().from(setups).where(eq(setups.id, scene.adjustmentsId)).get();
+      if (adj) return adj.data;
+    }
+  }
+  const setupRow = db.select().from(setups).where(eq(setups.id, tale.setupId)).get();
+  return setupRow ? setupRow.data : null;
 };
 
 export const upsertSceneAdjustments = (
