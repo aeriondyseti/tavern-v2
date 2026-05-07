@@ -1,16 +1,9 @@
 import { z } from "zod";
 
-export const ModelId = z.enum([
-  "claude-opus-4-7",
-  "claude-sonnet-4-6",
-  "claude-haiku-4-5-20251001",
-]);
+export const ModelId = z.enum(["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"]);
 export type ModelId = z.infer<typeof ModelId>;
 
 export const DEFAULT_MODEL: ModelId = "claude-opus-4-7";
-
-export const DirectionTier = z.enum(["absolute", "strong", "normal", "background"]);
-export type DirectionTier = z.infer<typeof DirectionTier>;
 
 export const SetupData = z.object({
   directions: z

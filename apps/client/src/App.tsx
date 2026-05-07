@@ -4,9 +4,20 @@ import { NavLink, Route, Routes } from "react-router-dom";
 import { Catalog } from "./surfaces/Catalog.js";
 import { Play } from "./surfaces/Play.js";
 import { Settings } from "./surfaces/Settings.js";
+import { QuickSwitcher } from "./tales/QuickSwitcher.js";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
-  `px-3 py-1.5 text-sm tracking-wide ${isActive ? "text-zinc-50 border-b border-zinc-50" : "text-zinc-400 hover:text-zinc-200"}`;
+  `px-2.5 py-1 text-xs uppercase tracking-wide ${
+    isActive ? "text-zinc-50 border-b border-zinc-50" : "text-zinc-500 hover:text-zinc-200"
+  }`;
+
+const isMac = (() => {
+  if (typeof navigator === "undefined") return false;
+  const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+  const platform = uaData?.platform ?? navigator.platform ?? navigator.userAgent ?? "";
+  return /mac|iphone|ipad/i.test(platform);
+})();
+const switcherHint = isMac ? "⌘K" : "Ctrl-K";
 
 export const App = () => {
   const [health, setHealth] = useState<string>("…");
@@ -19,16 +30,25 @@ export const App = () => {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between border-b border-zinc-800 px-4 py-2">
-        <div className="flex items-center gap-6">
-          <span className="font-serif text-lg">Tavern</span>
-          <nav className="flex gap-2">
-            <NavLink to="/catalog" className={navClass}>Catalog</NavLink>
-            <NavLink to="/play" className={navClass}>Play</NavLink>
-            <NavLink to="/settings" className={navClass}>Settings</NavLink>
+      <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-1.5">
+        <div className="flex items-center gap-5">
+          <span className="font-serif text-base">Tavern</span>
+          <nav className="flex gap-1">
+            <NavLink to="/play" className={navClass}>
+              Play
+            </NavLink>
+            <NavLink to="/catalog" className={navClass}>
+              Catalog
+            </NavLink>
+            <NavLink to="/settings" className={navClass}>
+              Settings
+            </NavLink>
           </nav>
         </div>
-        <span className="text-xs text-zinc-500">server: {health}</span>
+        <span className="flex items-center gap-3 text-[10px] text-zinc-500">
+          <span>{switcherHint} switch tale</span>
+          <span>· {health}</span>
+        </span>
       </header>
       <main className="flex-1 overflow-hidden">
         <Routes>
@@ -38,6 +58,7 @@ export const App = () => {
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
+      <QuickSwitcher />
     </div>
   );
 };

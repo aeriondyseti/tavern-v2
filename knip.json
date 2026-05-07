@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "project": ["*.{ts,cjs,mjs}"]
+    },
+    "apps/server": {
+      "entry": ["src/cli.ts", "src/index.ts", "scripts/**/*.{ts,mjs}"],
+      "project": ["src/**/*.ts"]
+    },
+    "apps/client": {
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/shared": {
+      "project": ["src/**/*.ts"]
+    }
+  },
+  "ignoreExportsUsedInFile": true
+}

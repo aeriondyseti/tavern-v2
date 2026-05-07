@@ -1,8 +1,8 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 
-const SERVER_PORT = process.env["TAVERN_PORT"] ?? "5174";
+const SERVER_PORT = process.env.TAVERN_PORT ?? "5174";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
