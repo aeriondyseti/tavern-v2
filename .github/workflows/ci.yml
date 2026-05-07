@@ -40,5 +40,4 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      # Wired in M7. Stub for now so it doesn't fail.
       - run: echo "publish step lands in M7"

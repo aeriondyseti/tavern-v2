@@ -1,11 +1,12 @@
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
-import { db } from "./client.js";
+import { ensureDataDir } from "../config.js";
+import { openDb } from "./client.js";
 
-const here = dirname(fileURLToPath(import.meta.url));
-const migrationsFolder = join(here, "..", "..", "drizzle");
+ensureDataDir();
+const { db } = openDb();
+const migrationsFolder = join(import.meta.dirname, "..", "..", "drizzle");
 
 migrate(db, { migrationsFolder });
 console.log("migrations applied");

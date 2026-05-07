@@ -1,10 +1,13 @@
 import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 
 import { DB_PATH } from "../config.js";
 
-export const sqlite = new Database(DB_PATH);
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("foreign_keys = ON");
+export type Db = BetterSQLite3Database;
 
-export const db = drizzle(sqlite);
+export const openDb = (path: string = DB_PATH): { db: Db; sqlite: Database.Database } => {
+  const sqlite = new Database(path);
+  sqlite.pragma("journal_mode = WAL");
+  sqlite.pragma("foreign_keys = ON");
+  return { db: drizzle(sqlite), sqlite };
+};

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { serve } from "@hono/node-server";
 
-import { HOST, PORT } from "./config.js";
+import { ensureDataDir, HOST, PORT } from "./config.js";
 import { buildApp } from "./server.js";
 
-const app = buildApp();
+ensureDataDir();
 
-serve({ fetch: app.fetch, hostname: HOST, port: PORT }, ({ address, port }) => {
+serve({ fetch: buildApp().fetch, hostname: HOST, port: PORT }, ({ address, port }) => {
   console.log(`tavern running at http://${address}:${port}`);
 });
