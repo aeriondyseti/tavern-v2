@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { streamSSE } from "hono/streaming";
+import { type SSEStreamingApi, streamSSE } from "hono/streaming";
 import { z } from "zod";
 import type { BeatEvent } from "@tavern/shared";
 
@@ -11,15 +11,111 @@ import {
   completeBeat,
   createStreamingBeat,
   deleteBeat,
+  editNarratorOutput,
+  getBeat,
   getTranscriptsForBeat,
   listBeatsForScene,
+  prepareRegenerate,
+  prepareReroll,
   recentHistory,
+  setActiveAlt,
   writeTranscript,
 } from "./repo.js";
 import { runNarrator } from "./runner.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 
 const BeatPost = z.object({ playerInput: z.string().min(1) });
+const NarratorEdit = z.object({
+  narratorOutput: z.string().optional(),
+  activeAlt: z.number().int().min(-1).optional(),
+});
+
+type StreamArgs = {
+  beatId: string;
+  sceneId: string;
+  playerInput: string;
+  altIndex?: number;
+};
+
+const streamBeatGeneration = async (
+  db: Db,
+  stream: SSEStreamingApi,
+  args: StreamArgs,
+) => {
+  const sceneRow = db.select().from(scenes).where(eq(scenes.id, args.sceneId)).get();
+  if (!sceneRow) {
+    await stream.writeSSE({
+      event: "error",
+      data: JSON.stringify({ message: "scene not found", ts: Date.now() }),
+    });
+    return;
+  }
+  const setup = getEffectiveSetup(db, sceneRow.taleId, args.sceneId);
+  if (!setup) {
+    await stream.writeSSE({
+      event: "error",
+      data: JSON.stringify({ message: "no effective setup", ts: Date.now() }),
+    });
+    return;
+  }
+
+  const composed = composeSystemPrompt(db, {
+    taleId: sceneRow.taleId,
+    sceneId: args.sceneId,
+    setup,
+  });
+
+  const ts = Date.now();
+  await stream.writeSSE({
+    event: "beat_started",
+    data: JSON.stringify({ beatId: args.beatId, ts }),
+  });
+  await stream.writeSSE({
+    event: "system_prompt",
+    data: JSON.stringify({ text: composed.text, ts }),
+  });
+
+  const history = recentHistory(db, args.sceneId, setup.history.max_beats);
+
+  const abort = new AbortController();
+  stream.onAbort(() => abort.abort());
+
+  const result = await runNarrator(db, {
+    taleId: sceneRow.taleId,
+    sceneId: args.sceneId,
+    setup,
+    systemPrompt: composed.text,
+    history,
+    playerInput: args.playerInput,
+    abort,
+    onEvent: async (e: BeatEvent) => {
+      try {
+        await stream.writeSSE({ event: e.type, data: JSON.stringify(e) });
+      } catch {
+        abort.abort();
+      }
+    },
+  });
+
+  completeBeat(db, args.beatId, {
+    status:
+      result.status === "cancelled"
+        ? "cancelled"
+        : result.status === "error"
+          ? "error"
+          : "complete",
+    narratorOutput: result.narratorOutput,
+  });
+  writeTranscript(db, {
+    beatId: args.beatId,
+    ...(args.altIndex !== undefined ? { altIndex: args.altIndex } : {}),
+    requestBody: result.requestBody,
+    events: result.events,
+    searchCalls: result.searchCalls,
+    model: setup.model.id,
+    durationMs: result.durationMs,
+  });
+};
 
 export const buildNarratorRoutes = (db: Db) => {
   const r = new Hono();
@@ -36,85 +132,78 @@ export const buildNarratorRoutes = (db: Db) => {
       : c.json({ error: "not found" }, 404),
   );
 
+  r.patch("/beats/:id", async (c) => {
+    const body = NarratorEdit.safeParse(await c.req.json());
+    if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+    let updated = getBeat(db, c.req.param("id"));
+    if (!updated) return c.json({ error: "not found" }, 404);
+    if (body.data.narratorOutput !== undefined) {
+      updated = editNarratorOutput(db, c.req.param("id"), body.data.narratorOutput);
+    }
+    if (body.data.activeAlt !== undefined) {
+      updated = setActiveAlt(db, c.req.param("id"), body.data.activeAlt);
+      if (!updated) return c.json({ error: "invalid activeAlt" }, 400);
+    }
+    return updated ? c.json(updated) : c.json({ error: "not found" }, 404);
+  });
+
   r.post("/scenes/:sceneId/beats", async (c) => {
     const sceneId = c.req.param("sceneId");
     const body = BeatPost.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-
     return streamSSE(c, async (stream) => {
-      const sceneRow = db.select().from(scenes).where(eq(scenes.id, sceneId)).get();
-      if (!sceneRow) {
-        await stream.writeSSE({
-          event: "error",
-          data: JSON.stringify({ message: "scene not found", ts: Date.now() }),
-        });
-        return;
-      }
-
-      const setup = getEffectiveSetup(db, sceneRow.taleId, sceneId);
-      if (!setup) {
-        await stream.writeSSE({
-          event: "error",
-          data: JSON.stringify({ message: "no effective setup", ts: Date.now() }),
-        });
-        return;
-      }
-
-      const composed = composeSystemPrompt(db, {
-        taleId: sceneRow.taleId,
-        sceneId,
-        setup,
-      });
-
       const beat = createStreamingBeat(db, sceneId, body.data.playerInput);
-      const ts = Date.now();
-      await stream.writeSSE({
-        event: "beat_started",
-        data: JSON.stringify({ beatId: beat.id, ts }),
-      });
-      await stream.writeSSE({
-        event: "system_prompt",
-        data: JSON.stringify({ text: composed.text, ts }),
-      });
-
-      const history = recentHistory(db, sceneId, setup.history.max_beats);
-
-      const abort = new AbortController();
-      stream.onAbort(() => abort.abort());
-
-      const result = await runNarrator(db, {
-        taleId: sceneRow.taleId,
-        sceneId,
-        setup,
-        systemPrompt: composed.text,
-        history,
-        playerInput: body.data.playerInput,
-        abort,
-        onEvent: async (e: BeatEvent) => {
-          try {
-            await stream.writeSSE({ event: e.type, data: JSON.stringify(e) });
-          } catch {
-            abort.abort();
-          }
-        },
-      });
-
-      completeBeat(db, beat.id, {
-        status:
-          result.status === "cancelled"
-            ? "cancelled"
-            : result.status === "error"
-              ? "error"
-              : "complete",
-        narratorOutput: result.narratorOutput,
-      });
-      writeTranscript(db, {
+      await streamBeatGeneration(db, stream, {
         beatId: beat.id,
-        requestBody: result.requestBody,
-        events: result.events,
-        searchCalls: result.searchCalls,
-        model: setup.model.id,
-        durationMs: result.durationMs,
+        sceneId,
+        playerInput: body.data.playerInput,
+      });
+    });
+  });
+
+  r.post("/beats/:id/reroll", (c) =>
+    streamSSE(c, async (stream) => {
+      const prepared = prepareReroll(db, c.req.param("id"));
+      if (!prepared) {
+        await stream.writeSSE({
+          event: "error",
+          data: JSON.stringify({ message: "beat not found", ts: Date.now() }),
+        });
+        return;
+      }
+      await streamBeatGeneration(db, stream, {
+        beatId: c.req.param("id"),
+        sceneId: prepared.sceneId,
+        playerInput: prepared.playerInput,
+        altIndex: prepared.altIndex,
+      });
+    }),
+  );
+
+  r.post("/beats/:id/regenerate", async (c) => {
+    const body = BeatPost.safeParse(await c.req.json());
+    if (!body.success) return c.json({ error: body.error.flatten() }, 400);
+    return streamSSE(c, async (stream) => {
+      const prepared = prepareRegenerate(db, c.req.param("id"), body.data.playerInput);
+      if (!prepared) {
+        await stream.writeSSE({
+          event: "error",
+          data: JSON.stringify({ message: "beat not found", ts: Date.now() }),
+        });
+        return;
+      }
+      await stream.writeSSE({
+        event: "regenerated",
+        data: JSON.stringify({
+          deletedBeatIds: prepared.deletedBeatIds,
+          ts: Date.now(),
+        }),
+      });
+      await streamBeatGeneration(db, stream, {
+        beatId: c.req.param("id"),
+        sceneId: prepared.sceneId,
+        playerInput: prepared.playerInput,
+        altIndex: prepared.altIndex,
       });
     });
   });

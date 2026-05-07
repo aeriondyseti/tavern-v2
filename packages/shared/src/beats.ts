@@ -51,6 +51,7 @@ export type BeatEvent =
   | { type: "thinking_delta"; text: string; ts: number }
   | { type: "text_delta"; text: string; ts: number }
   | { type: "done"; durationMs: number; ts: number }
+  | { type: "regenerated"; deletedBeatIds: string[]; ts: number }
   | { type: "error"; message: string; code?: string; ts: number };
 
 export type BeatTranscript = {

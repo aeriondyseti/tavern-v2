@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
+import { BeatItem } from "./BeatItem.js";
 import { useNarrator } from "./store.js";
 
 type Props = { sceneId: string; sceneName: string };
 
 export const BeatStream = ({ sceneId, sceneName }: Props) => {
-  const { bySceneId, loadBeats, live, startBeat, cancelLive, deleteBeat } = useNarrator();
+  const { bySceneId, loadBeats, live, startBeat, cancelLive } = useNarrator();
   const [input, setInput] = useState("");
   const tailRef = useRef<HTMLDivElement>(null);
 
@@ -37,22 +38,7 @@ export const BeatStream = ({ sceneId, sceneName }: Props) => {
           <p className="text-zinc-600">No beats yet. Begin the scene below.</p>
         )}
         {beats.map((b) => (
-          <article key={b.id} className="space-y-1">
-            <div className="border-l-2 border-zinc-700 pl-3 text-zinc-300">{b.playerInput}</div>
-            <div className="whitespace-pre-wrap text-zinc-100">{b.narratorOutput}</div>
-            <div className="flex items-center gap-2 text-[10px] text-zinc-600">
-              <span>{new Date(b.createdAt).toLocaleTimeString()}</span>
-              {b.status !== "complete" && <span>· {b.status}</span>}
-              <button
-                className="hover:text-rose-400"
-                onClick={() => {
-                  if (confirm("Delete this beat?")) void deleteBeat(sceneId, b.id);
-                }}
-              >
-                delete
-              </button>
-            </div>
-          </article>
+          <BeatItem key={b.id} sceneId={sceneId} beat={b} />
         ))}
         {streaming && (
           <article className="space-y-1">

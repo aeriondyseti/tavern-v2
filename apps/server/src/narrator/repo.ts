@@ -1,5 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
-import { max } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, max, sql } from "drizzle-orm";
 import {
   newId,
   type Beat,
@@ -97,6 +96,117 @@ export const completeBeat = (
     })
     .where(eq(beats.id, id))
     .run();
+};
+
+const archiveCurrentToAlts = (
+  db: Db,
+  id: string,
+): { row: typeof beats.$inferSelect; nextAltIndex: number } | null => {
+  const row = db.select().from(beats).where(eq(beats.id, id)).get();
+  if (!row) return null;
+  const nextAltIndex = row.alts.length;
+  if (row.narratorOutput) {
+    const latestTranscript = db
+      .select({ id: beatTranscripts.id })
+      .from(beatTranscripts)
+      .where(eq(beatTranscripts.beatId, id))
+      .orderBy(desc(beatTranscripts.createdAt))
+      .limit(1)
+      .get();
+    db.update(beats)
+      .set({
+        alts: [
+          ...row.alts,
+          {
+            narratorOutput: row.narratorOutput,
+            transcriptId: latestTranscript?.id ?? "",
+            createdAt: row.completedAt ?? row.createdAt,
+          },
+        ],
+      })
+      .where(eq(beats.id, id))
+      .run();
+  }
+  return { row, nextAltIndex };
+};
+
+export const prepareReroll = (
+  db: Db,
+  id: string,
+): { altIndex: number; sceneId: string; playerInput: string } | null => {
+  const archived = archiveCurrentToAlts(db, id);
+  if (!archived) return null;
+  db.update(beats)
+    .set({
+      narratorOutput: "",
+      status: "streaming",
+      activeAlt: -1,
+      completedAt: null,
+    })
+    .where(eq(beats.id, id))
+    .run();
+  return {
+    altIndex: archived.nextAltIndex,
+    sceneId: archived.row.sceneId,
+    playerInput: archived.row.playerInput,
+  };
+};
+
+export const editNarratorOutput = (db: Db, id: string, narratorOutput: string): Beat | null => {
+  const row = db.select().from(beats).where(eq(beats.id, id)).get();
+  if (!row) return null;
+  db.update(beats)
+    .set({ narratorOutput, status: "complete", completedAt: Date.now() })
+    .where(eq(beats.id, id))
+    .run();
+  return getBeat(db, id);
+};
+
+export const setActiveAlt = (db: Db, id: string, activeAlt: number): Beat | null => {
+  const row = db.select().from(beats).where(eq(beats.id, id)).get();
+  if (!row) return null;
+  if (activeAlt < -1 || activeAlt >= row.alts.length) return null;
+  db.update(beats).set({ activeAlt }).where(eq(beats.id, id)).run();
+  return getBeat(db, id);
+};
+
+export const prepareRegenerate = (
+  db: Db,
+  id: string,
+  newPlayerInput: string,
+): { altIndex: number; sceneId: string; playerInput: string; deletedBeatIds: string[] } | null => {
+  const row = db.select().from(beats).where(eq(beats.id, id)).get();
+  if (!row) return null;
+  // Drop every Beat after this one in the Scene; M5 spec opts for the
+  // confirm-and-delete flow rather than branching alt timelines.
+  const subsequentRows = db
+    .select({ id: beats.id })
+    .from(beats)
+    .where(and(eq(beats.sceneId, row.sceneId), sql`${beats.position} > ${row.position}`))
+    .all();
+  const subsequentIds = subsequentRows.map((r) => r.id);
+  if (subsequentIds.length > 0) {
+    db.delete(beats).where(inArray(beats.id, subsequentIds)).run();
+  }
+
+  const archived = archiveCurrentToAlts(db, id);
+  if (!archived) return null;
+  db.update(beats)
+    .set({
+      playerInput: newPlayerInput,
+      narratorOutput: "",
+      status: "streaming",
+      activeAlt: -1,
+      completedAt: null,
+    })
+    .where(eq(beats.id, id))
+    .run();
+  return {
+    altIndex: archived.nextAltIndex,
+    sceneId: row.sceneId,
+    playerInput: newPlayerInput,
+    deletedBeatIds: subsequentIds,
+  };
 };
 
 export const writeTranscript = (
