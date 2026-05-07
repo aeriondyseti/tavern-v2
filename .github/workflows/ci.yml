@@ -70,6 +70,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "NPM_TOKEN secret is not configured; skipping publish."
+            echo "(Set the NPM_TOKEN repo secret to enable @latest / @dev publishing.)"
+            exit 0
+          fi
           cd apps/server
           npm publish --tag "${PUBLISH_TAG}"
 
