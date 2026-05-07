@@ -27,6 +27,7 @@ data/
 .vscode/
 .idea/
 *.swp
+.claude/
 
 # os
 Thumbs.db
