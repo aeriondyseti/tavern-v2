@@ -1,10 +1,6 @@
 import { z } from "zod";
 
-export const ModelId = z.enum([
-  "claude-opus-4-7",
-  "claude-sonnet-4-6",
-  "claude-haiku-4-5-20251001",
-]);
+export const ModelId = z.enum(["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"]);
 export type ModelId = z.infer<typeof ModelId>;
 
 export const DEFAULT_MODEL: ModelId = "claude-opus-4-7";

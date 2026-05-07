@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
 import type { Settings, SettingsPatch } from "@tavern/shared";
+import { eq } from "drizzle-orm";
 
-import { type Db } from "../db/client.js";
+import type { Db } from "../db/client.js";
 import { settings } from "../db/schema.js";
 
 const SINGLETON_ID = 1;
@@ -25,8 +25,6 @@ export const ensureSettings = (db: Db): Settings => {
   return rowToDto(seeded!);
 };
 
-export const getSettings = ensureSettings;
-
 // initDb runs ensureSettings at boot, so the singleton row is guaranteed to
 // exist on every code path that ever reaches the routes.
 export const updateSettings = (db: Db, patch: SettingsPatch): Settings => {
@@ -36,11 +34,6 @@ export const updateSettings = (db: Db, patch: SettingsPatch): Settings => {
     if (v !== undefined) (updates as Record<string, unknown>)[key] = v;
   }
   if (Object.keys(updates).length === 0) return ensureSettings(db);
-  const row = db
-    .update(settings)
-    .set(updates)
-    .where(eq(settings.id, SINGLETON_ID))
-    .returning()
-    .get();
+  const row = db.update(settings).set(updates).where(eq(settings.id, SINGLETON_ID)).returning().get();
   return rowToDto(row!);
 };

@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 
-import { env, pipeline, type FeatureExtractionPipeline } from "@huggingface/transformers";
+import { env, type FeatureExtractionPipeline, type ProgressInfo, pipeline } from "@huggingface/transformers";
 import type { EmbedderStatus } from "@tavern/shared";
 
 import { TRANSFORMERS_CACHE } from "../config.js";
@@ -11,11 +11,6 @@ env.allowLocalModels = false;
 env.allowRemoteModels = true;
 
 export const DEFAULT_LOCAL_MODEL = "Xenova/bge-small-en-v1.5";
-
-type ProgressEvent =
-  | { status: "initiate" | "download" | "done"; file: string; progress?: number }
-  | { status: "progress"; file: string; progress: number; loaded: number; total: number }
-  | { status: "ready"; task: string; model: string };
 
 export type { EmbedderStatus };
 
@@ -37,9 +32,7 @@ export const onEmbedderStatus = (fn: (s: EmbedderStatus) => void): (() => void) 
   return () => _statusListeners.delete(fn);
 };
 
-export const loadLocalEmbedder = (
-  model: string = DEFAULT_LOCAL_MODEL,
-): Promise<FeatureExtractionPipeline> => {
+export const loadLocalEmbedder = (model: string = DEFAULT_LOCAL_MODEL): Promise<FeatureExtractionPipeline> => {
   if (_pipe && _loadingFor === model) return Promise.resolve(_pipe);
   if (_pendingLoad && _loadingFor === model) return _pendingLoad;
   _loadingFor = model;
@@ -49,7 +42,7 @@ export const loadLocalEmbedder = (
     try {
       const p = await pipeline("feature-extraction", model, {
         dtype: "q8",
-        progress_callback: (e: ProgressEvent) => {
+        progress_callback: (e: ProgressInfo) => {
           if (e.status === "progress") {
             setStatus({
               state: "loading",
@@ -74,10 +67,7 @@ export const loadLocalEmbedder = (
   return _pendingLoad;
 };
 
-export const embedLocal = async (
-  text: string,
-  model: string = DEFAULT_LOCAL_MODEL,
-): Promise<Float32Array> => {
+export const embedLocal = async (text: string, model: string = DEFAULT_LOCAL_MODEL): Promise<Float32Array> => {
   const pipe = await loadLocalEmbedder(model);
   const out = await pipe(text, { pooling: "mean", normalize: true });
   return out.data as Float32Array;

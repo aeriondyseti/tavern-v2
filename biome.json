@@ -1,0 +1,56 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUnusedImports": "error",
+        "noUnusedVariables": "warn"
+      },
+      "style": {
+        "noNonNullAssertion": "off"
+      },
+      "a11y": {
+        "useButtonType": "warn",
+        "noLabelWithoutControl": "warn",
+        "noStaticElementInteractions": "warn",
+        "useKeyWithClickEvents": "warn",
+        "noAutofocus": "warn"
+      },
+      "suspicious": {
+        "noArrayIndexKey": "warn"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "all",
+      "semicolons": "always"
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "files": {
+    "includes": [
+      "apps/*/src/**",
+      "packages/*/src/**",
+      "apps/server/scripts/**",
+      "apps/server/drizzle.config.ts",
+      "apps/client/vite.config.ts",
+      "vitest.config.ts"
+    ]
+  }
+}

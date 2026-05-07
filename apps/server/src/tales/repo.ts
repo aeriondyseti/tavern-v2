@@ -1,8 +1,7 @@
-import { asc, eq, inArray, max, sql } from "drizzle-orm";
 import {
+  type AnchorFacet,
   defaultSetup,
   newId,
-  type AnchorFacet,
   type PinnedEntry,
   type Scene,
   type SceneSummary,
@@ -10,21 +9,22 @@ import {
   type Tale,
   type TaleSummary,
 } from "@tavern/shared";
+import { asc, eq, inArray, max, sql } from "drizzle-orm";
 
-import { type Db } from "../db/client.js";
-import { getSettings } from "../settings/repo.js";
+import type { Db } from "../db/client.js";
 import {
+  type AnchorFacetRow,
   anchorFacets,
   entries,
   pinned,
-  scenes,
-  setups,
-  tales,
-  type AnchorFacetRow,
   type SceneRow,
   type SetupScope,
+  scenes,
+  setups,
   type TaleRow,
+  tales,
 } from "../db/schema.js";
+import { ensureSettings } from "../settings/repo.js";
 
 export type {
   AnchorFacet,
@@ -35,9 +35,7 @@ export type {
   TaleSummary,
 } from "@tavern/shared";
 
-export type PinnedScope =
-  | { kind: "tale"; id: string }
-  | { kind: "scene"; id: string };
+export type PinnedScope = { kind: "tale"; id: string } | { kind: "scene"; id: string };
 
 const pinnedScopeCond = (scope: PinnedScope) =>
   scope.kind === "tale" ? eq(pinned.taleId, scope.id) : eq(pinned.sceneId, scope.id);
@@ -82,17 +80,10 @@ const sceneSummary = (row: SceneRow, hasAdjustments: boolean): SceneSummary => (
   createdAt: row.createdAt,
 });
 
-export const listPinnedForScope = (db: Db, scope: PinnedScope): PinnedEntry[] =>
-  loadPinnedFor(db, scope);
-
 // Spec §7.4: Scene pins override Tale pins. If the active Scene has any pins,
 // only those render. If the Scene has none (or no Scene is active), fall back
 // to the Tale's pins.
-export const effectivePinned = (
-  db: Db,
-  taleId: string,
-  sceneId: string | null,
-): PinnedEntry[] => {
+export const effectivePinned = (db: Db, taleId: string, sceneId: string | null): PinnedEntry[] => {
   if (sceneId) {
     const scenePins = loadPinnedFor(db, { kind: "scene", id: sceneId });
     if (scenePins.length > 0) return scenePins;
@@ -123,10 +114,7 @@ const loadPinnedFor = (db: Db, scope: PinnedScope): PinnedEntry[] => {
   }));
 };
 
-const loadAnchorFacetsFor = (
-  db: Db,
-  where: { taleId: string; sceneId: string | null },
-): AnchorFacet[] => {
+const loadAnchorFacetsFor = (db: Db, where: { taleId: string; sceneId: string | null }): AnchorFacet[] => {
   const condSceneSql = where.sceneId
     ? sql`${anchorFacets.sceneId} = ${where.sceneId}`
     : sql`${anchorFacets.sceneId} IS NULL`;
@@ -174,7 +162,7 @@ export const getScene = (db: Db, id: string): Scene | null => {
 };
 
 const setupFromDefaults = (db: Db): SetupData => {
-  const s = getSettings(db);
+  const s = ensureSettings(db);
   const base = defaultSetup();
   base.model.id = s.defaultModel;
   base.model.temperature = s.defaultTemperature;
@@ -183,10 +171,7 @@ const setupFromDefaults = (db: Db): SetupData => {
   return base;
 };
 
-export const createTale = (
-  db: Db,
-  input: { name: string; description?: string; anchorProse?: string },
-): Tale => {
+export const createTale = (db: Db, input: { name: string; description?: string; anchorProse?: string }): Tale => {
   const id = newId();
   db.transaction((tx) => {
     const setupId = insertSetup(tx, "tale", setupFromDefaults(tx));
@@ -256,11 +241,7 @@ const nextScenePosition = (db: Db, taleId: string): number => {
   return (r?.m ?? -1) + 1;
 };
 
-export const createScene = (
-  db: Db,
-  taleId: string,
-  input: { name: string; anchorProse?: string },
-): Scene | null => {
+export const createScene = (db: Db, taleId: string, input: { name: string; anchorProse?: string }): Scene | null => {
   const tale = db.select().from(tales).where(eq(tales.id, taleId)).get();
   if (!tale) return null;
   const id = newId();
@@ -317,11 +298,7 @@ export const deleteScene = (db: Db, id: string): boolean => {
   return true;
 };
 
-export const getEffectiveSetup = (
-  db: Db,
-  taleId: string,
-  sceneId: string | null,
-): SetupData | null => {
+export const getEffectiveSetup = (db: Db, taleId: string, sceneId: string | null): SetupData | null => {
   const tale = db.select().from(tales).where(eq(tales.id, taleId)).get();
   if (!tale) return null;
   if (sceneId) {
@@ -335,11 +312,7 @@ export const getEffectiveSetup = (
   return setupRow ? setupRow.data : null;
 };
 
-export const upsertSceneAdjustments = (
-  db: Db,
-  sceneId: string,
-  data: SetupData,
-): SetupData | null => {
+export const upsertSceneAdjustments = (db: Db, sceneId: string, data: SetupData): SetupData | null => {
   const scene = db.select().from(scenes).where(eq(scenes.id, sceneId)).get();
   if (!scene) return null;
   if (scene.adjustmentsId) {
@@ -353,7 +326,7 @@ export const upsertSceneAdjustments = (
 
 export const dropSceneAdjustments = (db: Db, sceneId: string): boolean => {
   const scene = db.select().from(scenes).where(eq(scenes.id, sceneId)).get();
-  if (!scene || !scene.adjustmentsId) return false;
+  if (!scene?.adjustmentsId) return false;
   db.transaction((tx) => {
     tx.update(scenes).set({ adjustmentsId: null }).where(eq(scenes.id, sceneId)).run();
     tx.delete(setups).where(eq(setups.id, scene.adjustmentsId!)).run();

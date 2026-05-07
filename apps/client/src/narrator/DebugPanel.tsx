@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import type { BeatEvent, BeatTranscript } from "@tavern/shared";
+import { useEffect, useState } from "react";
 
 import { beatsApi } from "./api.js";
 import { useNarrator } from "./store.js";
@@ -21,9 +21,7 @@ export const DebugPanel = ({ beatId }: Props) => {
 
   const liveEvents = live.events;
   const transcript = transcripts?.[0] ?? null;
-  const events: BeatEvent[] = live.streaming
-    ? liveEvents
-    : (transcript?.events ?? liveEvents);
+  const events: BeatEvent[] = live.streaming ? liveEvents : (transcript?.events ?? liveEvents);
   const systemPrompt = live.systemPrompt ?? findSystemPrompt(events);
   const requestBody = transcript?.requestBody ?? findRequestBuilt(events);
 
@@ -52,9 +50,7 @@ export const DebugPanel = ({ beatId }: Props) => {
       </header>
       <div className="flex-1 overflow-y-auto p-3">
         {tab === "prompt" && (
-          <pre className="whitespace-pre-wrap text-zinc-300">
-            {systemPrompt ?? "no system prompt yet"}
-          </pre>
+          <pre className="whitespace-pre-wrap text-zinc-300">{systemPrompt ?? "no system prompt yet"}</pre>
         )}
         {tab === "request" && (
           <pre className="whitespace-pre-wrap text-zinc-300">
@@ -67,9 +63,7 @@ export const DebugPanel = ({ beatId }: Props) => {
               <li key={i} className="rounded border border-zinc-800 px-2 py-1">
                 <div className="flex items-baseline justify-between">
                   <span className="font-mono text-zinc-100">{e.type}</span>
-                  <span className="text-[10px] text-zinc-600">
-                    {new Date(e.ts).toLocaleTimeString()}
-                  </span>
+                  <span className="text-[10px] text-zinc-600">{new Date(e.ts).toLocaleTimeString()}</span>
                 </div>
                 {summarize(e)}
               </li>
@@ -104,8 +98,8 @@ const summarize = (e: BeatEvent) => {
     return (
       <details className="mt-1">
         <summary className="cursor-pointer text-zinc-500">
-          {e.searchCall.candidates.filter((c) => c.selected).length} selected of{" "}
-          {e.searchCall.candidates.length} candidates · query="{e.searchCall.query}"
+          {e.searchCall.candidates.filter((c) => c.selected).length} selected of {e.searchCall.candidates.length}{" "}
+          candidates · query="{e.searchCall.query}"
         </summary>
         <table className="mt-1 w-full text-[10px] text-zinc-400">
           <thead>

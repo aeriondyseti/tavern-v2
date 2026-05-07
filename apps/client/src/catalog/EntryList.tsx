@@ -4,16 +4,8 @@ import { useCatalog } from "./store.js";
 import { NEW_ENTRY_SENTINEL } from "./types.js";
 
 export const EntryList = () => {
-  const {
-    entries,
-    types,
-    selectedTypeId,
-    selectedEntryId,
-    selectEntry,
-    filter,
-    setFilter,
-    reloadEntries,
-  } = useCatalog();
+  const { entries, types, selectedTypeId, selectedEntryId, selectEntry, filter, setFilter, reloadEntries } =
+    useCatalog();
 
   const skipInitial = useRef(true);
   useEffect(() => {
@@ -23,7 +15,7 @@ export const EntryList = () => {
     }
     const t = setTimeout(reloadEntries, 150);
     return () => clearTimeout(t);
-  }, [filter, reloadEntries]);
+  }, [reloadEntries]);
 
   const selectedType = selectedTypeId ? types.find((t) => t.id === selectedTypeId) : null;
 

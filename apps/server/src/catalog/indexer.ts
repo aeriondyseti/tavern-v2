@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 
-import { type Db } from "../db/client.js";
+import type { Db } from "../db/client.js";
 import { cues, entries, facets } from "../db/schema.js";
 import { embed, f32ToBuffer } from "../embeddings/index.js";
 
@@ -30,13 +30,7 @@ const buildSearchableText = (
   return { name, cueText, bodyText };
 };
 
-const writeFtsRow = (
-  db: Db,
-  entryId: string,
-  name: string,
-  cueText: string,
-  bodyText: string,
-) => {
+const writeFtsRow = (db: Db, entryId: string, name: string, cueText: string, bodyText: string) => {
   db.run(sql`DELETE FROM entries_fts WHERE entry_id = ${entryId}`);
   db.run(
     sql`INSERT INTO entries_fts (entry_id, name, cue_text, body_text) VALUES (${entryId}, ${name}, ${cueText}, ${bodyText})`,
@@ -71,10 +65,7 @@ export type ReindexProgress = {
   errors: { id: string; name: string; message: string }[];
 };
 
-export const reindexAll = async (
-  db: Db,
-  onProgress?: (p: ReindexProgress) => void,
-): Promise<ReindexProgress> => {
+export const reindexAll = async (db: Db, onProgress?: (p: ReindexProgress) => void): Promise<ReindexProgress> => {
   const all = db.select({ id: entries.id, name: entries.name }).from(entries).all();
   const progress: ReindexProgress = { total: all.length, done: 0, errors: [] };
   onProgress?.(progress);

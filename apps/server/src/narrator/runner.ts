@@ -1,7 +1,7 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { BeatEvent, SearchCallRecord, SetupData } from "@tavern/shared";
 
-import { type Db } from "../db/client.js";
+import type { Db } from "../db/client.js";
 import { buildNarratorMcpServer } from "./mcp.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 
@@ -35,37 +35,20 @@ const TOOL_NAME_BY_FLAG: Record<keyof SetupData["tools"], string> = {
   list_pinned: `${NARRATOR_MCP_PREFIX}list_pinned`,
 };
 
-const FILE_AND_BASH_TOOLS = [
-  "Bash",
-  "Read",
-  "Write",
-  "Edit",
-  "Glob",
-  "Grep",
-  "WebFetch",
-  "WebSearch",
-];
+const FILE_AND_BASH_TOOLS = ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch", "WebSearch"];
 
 const allowedToolsFromSetup = (setup: SetupData): string[] =>
   (Object.keys(TOOL_NAME_BY_FLAG) as (keyof SetupData["tools"])[])
     .filter((flag) => setup.tools[flag])
     .map((flag) => TOOL_NAME_BY_FLAG[flag]);
 
-const renderHistoryAsPrompt = (
-  history: RunNarratorArgs["history"],
-  playerInput: string,
-): string => {
-  const lines = history.map(
-    (m) => `${m.role === "user" ? "Player" : "Narrator"}: ${m.content}`,
-  );
+const renderHistoryAsPrompt = (history: RunNarratorArgs["history"], playerInput: string): string => {
+  const lines = history.map((m) => `${m.role === "user" ? "Player" : "Narrator"}: ${m.content}`);
   lines.push(`Player: ${playerInput}`);
   return lines.join("\n\n");
 };
 
-export const runNarrator = async (
-  db: Db,
-  args: RunNarratorArgs,
-): Promise<RunResult> => {
+export const runNarrator = async (db: Db, args: RunNarratorArgs): Promise<RunResult> => {
   const startTs = Date.now();
   const events: BeatEvent[] = [];
   const searchCalls: SearchCallRecord[] = [];
@@ -167,17 +150,11 @@ export const runNarrator = async (
         const content = message.message.content;
         if (typeof content === "string") continue;
         for (const block of content) {
-          if (
-            typeof block === "object" &&
-            block !== null &&
-            (block as { type?: string }).type === "tool_result"
-          ) {
+          if (typeof block === "object" && block !== null && (block as { type?: string }).type === "tool_result") {
             const tr = block as { tool_use_id: string; content: unknown };
             const matched = pendingTool.get(tr.tool_use_id);
             const lastSearch =
-              matched?.name === `${NARRATOR_MCP_PREFIX}search_world`
-                ? searchCalls[searchCalls.length - 1]
-                : undefined;
+              matched?.name === `${NARRATOR_MCP_PREFIX}search_world` ? searchCalls[searchCalls.length - 1] : undefined;
             await emit({
               type: "tool_result",
               id: tr.tool_use_id,

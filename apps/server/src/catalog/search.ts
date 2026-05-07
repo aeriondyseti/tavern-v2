@@ -1,7 +1,7 @@
-import { inArray, sql } from "drizzle-orm";
 import type { SearchCandidate } from "@tavern/shared";
+import { inArray, sql } from "drizzle-orm";
 
-import { type Db } from "../db/client.js";
+import type { Db } from "../db/client.js";
 import { connections, entries, types } from "../db/schema.js";
 import { bufferToF32, cosine, embed } from "../embeddings/index.js";
 import { type Entry, getEntries } from "./repo.js";
@@ -40,9 +40,10 @@ export const searchWorld = async (db: Db, opts: SearchOptions): Promise<SearchRe
 
   const ftsQuery = sanitizeFtsQuery(queryText);
   const ftsRows: { entry_id: string; bm25: number }[] = ftsQuery
-    ? (db.all(
-        sql`SELECT entry_id, bm25(entries_fts) AS bm25 FROM entries_fts WHERE entries_fts MATCH ${ftsQuery}`,
-      ) as { entry_id: string; bm25: number }[])
+    ? (db.all(sql`SELECT entry_id, bm25(entries_fts) AS bm25 FROM entries_fts WHERE entries_fts MATCH ${ftsQuery}`) as {
+        entry_id: string;
+        bm25: number;
+      }[])
     : [];
 
   const queryEmbedding = await embed(queryText)
@@ -67,7 +68,12 @@ export const searchWorld = async (db: Db, opts: SearchOptions): Promise<SearchRe
     const ftsHitRows = db
       .select()
       .from(entries)
-      .where(inArray(entries.id, ftsRows.map((r) => r.entry_id)))
+      .where(
+        inArray(
+          entries.id,
+          ftsRows.map((r) => r.entry_id),
+        ),
+      )
       .all();
     for (const row of ftsHitRows) {
       candidateRows.push(row);
@@ -80,11 +86,7 @@ export const searchWorld = async (db: Db, opts: SearchOptions): Promise<SearchRe
   // bound parameter limit) since we'd otherwise materialize every embedded
   // entry's id just to feed it back as IN (?,?,?,...).
   if (queryEmbedding && candidateRows.length < opts.maxResults) {
-    const allEmbedded = db
-      .select()
-      .from(entries)
-      .where(sql`${entries.embeddingVec} IS NOT NULL`)
-      .all();
+    const allEmbedded = db.select().from(entries).where(sql`${entries.embeddingVec} IS NOT NULL`).all();
     for (const row of allEmbedded) {
       if (!seen.has(row.id)) {
         candidateRows.push(row);
@@ -101,14 +103,8 @@ export const searchWorld = async (db: Db, opts: SearchOptions): Promise<SearchRe
     .filter((row) => !allowedTypeIds || allowedTypeIds.has(row.typeId))
     .map((row) => {
       const rawBm25 = ftsRowsByEntry.get(row.id);
-      const bm25 =
-        rawBm25 === undefined || maxBm25Magnitude === 0
-          ? 0
-          : Math.abs(rawBm25) / maxBm25Magnitude;
-      const sim =
-        queryEmbedding && row.embeddingVec
-          ? cosine(queryEmbedding, bufferToF32(row.embeddingVec))
-          : 0;
+      const bm25 = rawBm25 === undefined || maxBm25Magnitude === 0 ? 0 : Math.abs(rawBm25) / maxBm25Magnitude;
+      const sim = queryEmbedding && row.embeddingVec ? cosine(queryEmbedding, bufferToF32(row.embeddingVec)) : 0;
       return {
         entryId: row.id,
         name: row.name,

@@ -1,29 +1,17 @@
-import { useState } from "react";
 import type { Beat } from "@tavern/shared";
+import { useState } from "react";
 
 import { useNarrator } from "./store.js";
 
 type Props = { sceneId: string; beat: Beat };
 
-type EditingState =
-  | null
-  | { kind: "narrator"; draft: string }
-  | { kind: "player"; draft: string };
+type EditingState = null | { kind: "narrator"; draft: string } | { kind: "player"; draft: string };
 
 const displayedOutput = (beat: Beat): string =>
-  beat.activeAlt >= 0 && beat.alts[beat.activeAlt]
-    ? beat.alts[beat.activeAlt]!.narratorOutput
-    : beat.narratorOutput;
+  beat.activeAlt >= 0 && beat.alts[beat.activeAlt] ? beat.alts[beat.activeAlt]!.narratorOutput : beat.narratorOutput;
 
 export const BeatItem = ({ sceneId, beat }: Props) => {
-  const {
-    rerollBeat,
-    regenerateBeat,
-    editNarratorOutput,
-    selectAlt,
-    deleteBeat,
-    live,
-  } = useNarrator();
+  const { rerollBeat, regenerateBeat, editNarratorOutput, selectAlt, deleteBeat, live } = useNarrator();
   const [editing, setEditing] = useState<EditingState>(null);
 
   const streaming = live.streaming;
@@ -41,11 +29,7 @@ export const BeatItem = ({ sceneId, beat }: Props) => {
   const onPlayerSave = async (draft: string) => {
     const trimmed = draft.trim();
     if (!trimmed || trimmed === beat.playerInput) return closeEditor();
-    if (
-      !confirm(
-        "This regenerates from this beat. All later beats in this scene will be deleted. Continue?",
-      )
-    ) {
+    if (!confirm("This regenerates from this beat. All later beats in this scene will be deleted. Continue?")) {
       return closeEditor();
     }
     closeEditor();
@@ -79,7 +63,6 @@ export const BeatItem = ({ sceneId, beat }: Props) => {
       {isPlayerEdit ? (
         <div className="flex items-start gap-2 border-l-2 border-zinc-500 pl-3">
           <textarea
-            autoFocus
             rows={2}
             className="flex-1 bg-zinc-900 px-2 py-1 text-sm text-zinc-200 outline-none"
             value={editing.draft}
@@ -99,7 +82,6 @@ export const BeatItem = ({ sceneId, beat }: Props) => {
       )}
       {isNarratorEdit ? (
         <textarea
-          autoFocus
           rows={6}
           className="w-full bg-zinc-900 px-2 py-1 text-sm text-zinc-100 outline-none"
           value={editing.draft}

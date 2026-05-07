@@ -1,12 +1,11 @@
 import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
+import type { SearchCallRecord, SetupData } from "@tavern/shared";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import type { SearchCallRecord, SetupData } from "@tavern/shared";
-
-import { type Db } from "../db/client.js";
-import { entries, facets } from "../db/schema.js";
 import * as repo from "../catalog/repo.js";
 import { searchWorld } from "../catalog/search.js";
+import type { Db } from "../db/client.js";
+import { entries, facets } from "../db/schema.js";
 import { effectivePinned } from "../tales/repo.js";
 
 export type ToolRecorder = {
@@ -77,9 +76,7 @@ export const buildNarratorMcpServer = (db: Db, ctx: NarratorContext) =>
             entry = repo.getEntry(db, args.id);
           } else if (args.name) {
             const nameMatch = sql`lower(${entries.name}) = lower(${args.name})`;
-            const where = args.type
-              ? and(nameMatch, eq(entries.typeId, args.type))
-              : nameMatch;
+            const where = args.type ? and(nameMatch, eq(entries.typeId, args.type)) : nameMatch;
             const row = db.select().from(entries).where(where).get();
             if (row) entry = repo.getEntry(db, row.id);
           }
@@ -104,11 +101,7 @@ export const buildNarratorMcpServer = (db: Db, ctx: NarratorContext) =>
           const ids = [...tiers.absolute, ...tiers.strong, ...tiers.normal, ...tiers.background];
           if (ids.length === 0) return textResult({ tiers: {} });
           const entryRows = db.select().from(entries).where(inArray(entries.id, ids)).all();
-          const facetRows = db
-            .select()
-            .from(facets)
-            .where(inArray(facets.entryId, ids))
-            .all();
+          const facetRows = db.select().from(facets).where(inArray(facets.entryId, ids)).all();
           const facetsBy = new Map<string, { label: string; body: string }[]>();
           for (const f of facetRows.filter((x) => x.mode === "always")) {
             const arr = facetsBy.get(f.entryId) ?? [];

@@ -1,8 +1,8 @@
+import { EntryCreate, EntryUpdate, KindId } from "@tavern/shared";
 import { Hono } from "hono";
 import { z } from "zod";
-import { EntryCreate, EntryUpdate, KindId } from "@tavern/shared";
 
-import { type Db } from "../db/client.js";
+import type { Db } from "../db/client.js";
 import * as repo from "./repo.js";
 
 const TypeCreate = z.object({ kindId: KindId, name: z.string().min(1) });
@@ -18,10 +18,7 @@ const ListEntriesQuery = z.object({
 });
 
 const isUniqueError = (e: unknown): boolean =>
-  typeof e === "object" &&
-  e !== null &&
-  "code" in e &&
-  (e as { code: string }).code === "SQLITE_CONSTRAINT_UNIQUE";
+  typeof e === "object" && e !== null && "code" in e && (e as { code: string }).code === "SQLITE_CONSTRAINT_UNIQUE";
 
 export const buildCatalogRoutes = (db: Db) => {
   const r = new Hono();
@@ -49,9 +46,7 @@ export const buildCatalogRoutes = (db: Db) => {
   });
 
   r.delete("/types/:id", (c) =>
-    repo.deleteType(db, c.req.param("id"))
-      ? c.body(null, 204)
-      : c.json({ error: "not found" }, 404),
+    repo.deleteType(db, c.req.param("id")) ? c.body(null, 204) : c.json({ error: "not found" }, 404),
   );
 
   r.get("/entries", (c) => {
@@ -89,9 +84,7 @@ export const buildCatalogRoutes = (db: Db) => {
   });
 
   r.delete("/entries/:id", (c) =>
-    repo.deleteEntry(db, c.req.param("id"))
-      ? c.body(null, 204)
-      : c.json({ error: "not found" }, 404),
+    repo.deleteEntry(db, c.req.param("id")) ? c.body(null, 204) : c.json({ error: "not found" }, 404),
   );
 
   return r;

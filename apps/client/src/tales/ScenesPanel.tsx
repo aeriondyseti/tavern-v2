@@ -3,15 +3,7 @@ import { useState } from "react";
 import { useTales } from "./store.js";
 
 export const ScenesPanel = () => {
-  const {
-    activeTale,
-    activeScene,
-    selectScene,
-    createScene,
-    deleteScene,
-    updateScene,
-    updateTale,
-  } = useTales();
+  const { activeTale, activeScene, selectScene, createScene, deleteScene, updateScene, updateTale } = useTales();
 
   const [creating, setCreating] = useState(false);
   const [draftName, setDraftName] = useState("");
@@ -31,10 +23,7 @@ export const ScenesPanel = () => {
     <div className="space-y-2">
       <header className="flex items-center justify-between">
         <h4 className="text-xs uppercase tracking-wide text-zinc-500">Scenes</h4>
-        <button
-          className="text-xs text-zinc-400 hover:text-zinc-100"
-          onClick={() => setCreating(true)}
-        >
+        <button className="text-xs text-zinc-400 hover:text-zinc-100" onClick={() => setCreating(true)}>
           + new scene
         </button>
       </header>
@@ -42,7 +31,6 @@ export const ScenesPanel = () => {
         {creating && (
           <li>
             <input
-              autoFocus
               className="w-full bg-zinc-900 px-2 py-1 text-sm"
               placeholder="scene name"
               value={draftName}

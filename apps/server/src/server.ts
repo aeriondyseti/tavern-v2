@@ -1,12 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
+import { serveStatic } from "hono/bun";
 
 import { buildCatalogRoutes } from "./catalog/routes.js";
 import { buildSearchRoutes } from "./catalog/search-routes.js";
-import { type Db } from "./db/client.js";
+import type { Db } from "./db/client.js";
 import { buildNarratorRoutes } from "./narrator/routes.js";
 import { buildSettingsRoutes } from "./settings/routes.js";
 import { buildTalesRoutes } from "./tales/routes.js";

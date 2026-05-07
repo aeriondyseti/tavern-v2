@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import type { SetupData } from "@tavern/shared";
+import { create } from "zustand";
 
 import { talesApi } from "./api.js";
 import type { Scene, SceneSummary, Tale, TaleSummary } from "./types.js";
@@ -26,19 +26,13 @@ type Actions = {
   saveTalePinned: (id: string, entryIds: string[]) => Promise<void>;
   saveTaleAnchorFacets: (id: string, facets: { label: string; body?: string }[]) => Promise<void>;
   createScene: (taleId: string, input: { name: string; anchorProse?: string }) => Promise<Scene>;
-  updateScene: (
-    id: string,
-    patch: { name?: string; anchorProse?: string; position?: number },
-  ) => Promise<Scene>;
+  updateScene: (id: string, patch: { name?: string; anchorProse?: string; position?: number }) => Promise<Scene>;
   deleteScene: (id: string) => Promise<void>;
   selectScene: (id: string | null) => Promise<void>;
   saveSceneAdjustments: (sceneId: string, data: SetupData) => Promise<void>;
   dropSceneAdjustments: (sceneId: string) => Promise<void>;
   saveScenePinned: (sceneId: string, entryIds: string[]) => Promise<void>;
-  saveSceneAnchorFacets: (
-    sceneId: string,
-    facets: { label: string; body?: string }[],
-  ) => Promise<void>;
+  saveSceneAnchorFacets: (sceneId: string, facets: { label: string; body?: string }[]) => Promise<void>;
 };
 
 const summarize = (t: Tale): TaleSummary => ({
@@ -121,29 +115,17 @@ export const useTales = create<State & Actions>((set) => ({
 
   saveTaleSetup: async (id, data) => {
     const setup = await talesApi.putSetup(id, data);
-    set((s) =>
-      s.activeTaleId === id && s.activeTale
-        ? { activeTale: { ...s.activeTale, setup } }
-        : {},
-    );
+    set((s) => (s.activeTaleId === id && s.activeTale ? { activeTale: { ...s.activeTale, setup } } : {}));
   },
 
   saveTalePinned: async (id, entryIds) => {
     const next = await talesApi.putPinned(id, entryIds);
-    set((s) =>
-      s.activeTaleId === id && s.activeTale
-        ? { activeTale: { ...s.activeTale, pinned: next } }
-        : {},
-    );
+    set((s) => (s.activeTaleId === id && s.activeTale ? { activeTale: { ...s.activeTale, pinned: next } } : {}));
   },
 
   saveTaleAnchorFacets: async (id, facets) => {
     const next = await talesApi.putAnchorFacets(id, facets);
-    set((s) =>
-      s.activeTaleId === id && s.activeTale
-        ? { activeTale: { ...s.activeTale, anchorFacets: next } }
-        : {},
-    );
+    set((s) => (s.activeTaleId === id && s.activeTale ? { activeTale: { ...s.activeTale, anchorFacets: next } } : {}));
   },
 
   createScene: async (taleId, input) => {
@@ -213,20 +195,12 @@ export const useTales = create<State & Actions>((set) => ({
 
   saveScenePinned: async (sceneId, entryIds) => {
     const next = await talesApi.putScenePinned(sceneId, entryIds);
-    set((s) =>
-      s.activeScene?.id === sceneId
-        ? { activeScene: { ...s.activeScene, pinned: next } }
-        : {},
-    );
+    set((s) => (s.activeScene?.id === sceneId ? { activeScene: { ...s.activeScene, pinned: next } } : {}));
   },
 
   saveSceneAnchorFacets: async (sceneId, facets) => {
     const next = await talesApi.putSceneAnchorFacets(sceneId, facets);
-    set((s) =>
-      s.activeScene?.id === sceneId
-        ? { activeScene: { ...s.activeScene, anchorFacets: next } }
-        : {},
-    );
+    set((s) => (s.activeScene?.id === sceneId ? { activeScene: { ...s.activeScene, anchorFacets: next } } : {}));
   },
 }));
 
@@ -253,4 +227,3 @@ const spliceSceneAdjustments = (
   }
   return patch;
 };
-

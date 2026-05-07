@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { fetchEmbedderStatus, streamReindex, type EmbedderStatus, type ReindexEvent } from "./search-api.js";
+import { type EmbedderStatus, fetchEmbedderStatus, type ReindexEvent, streamReindex } from "./search-api.js";
 import { useCatalog } from "./store.js";
 
 type Progress = { total: number; done: number; current?: { name: string } };
@@ -73,9 +73,7 @@ const embedderSummary = (s: EmbedderStatus): string => {
     case "idle":
       return "embeddings: idle";
     case "loading":
-      return s.progress !== undefined
-        ? `loading ${s.model} (${s.progress}%)`
-        : `loading ${s.model}…`;
+      return s.progress !== undefined ? `loading ${s.model} (${s.progress}%)` : `loading ${s.model}…`;
     case "ready":
       return `model ready: ${s.model}`;
     case "error":

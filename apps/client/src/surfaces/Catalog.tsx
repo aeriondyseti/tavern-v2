@@ -1,10 +1,9 @@
 import { useEffect } from "react";
-
+import { EntryEditor } from "../catalog/EntryEditor.js";
+import { EntryList } from "../catalog/EntryList.js";
+import { ReindexBar } from "../catalog/ReindexBar.js";
 import { useCatalog } from "../catalog/store.js";
 import { TypeTree } from "../catalog/TypeTree.js";
-import { EntryList } from "../catalog/EntryList.js";
-import { EntryEditor } from "../catalog/EntryEditor.js";
-import { ReindexBar } from "../catalog/ReindexBar.js";
 
 export const Catalog = () => {
   const { load, error, loaded } = useCatalog();

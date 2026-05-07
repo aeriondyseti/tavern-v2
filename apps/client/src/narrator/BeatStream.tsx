@@ -30,7 +30,7 @@ export const BeatStream = ({ sceneId, sceneName }: Props) => {
 
   useEffect(() => {
     tailRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
-  }, [beats.length, live.text, live.thinking]);
+  }, []);
 
   const submit = async () => {
     const trimmed = input.trim();
@@ -45,9 +45,7 @@ export const BeatStream = ({ sceneId, sceneName }: Props) => {
         Scene — {sceneName}
       </header>
       <div className="flex-1 space-y-4 overflow-y-auto p-4 text-sm leading-relaxed">
-        {beats.length === 0 && !streaming && (
-          <p className="text-zinc-600">No beats yet. Begin the scene below.</p>
-        )}
+        {beats.length === 0 && !streaming && <p className="text-zinc-600">No beats yet. Begin the scene below.</p>}
         {beats.map((b) => (
           <BeatItem key={b.id} sceneId={sceneId} beat={b} />
         ))}

@@ -1,25 +1,8 @@
-import type { EmbedderStatus, SearchCandidate, SearchRequest } from "@tavern/shared";
+import type { EmbedderStatus } from "@tavern/shared";
 
 import { consumeSseStream } from "../api/util.js";
-import type { Entry } from "./types.js";
 
-export type { EmbedderStatus, SearchCandidate, SearchRequest };
-
-export type SearchResult = {
-  entries: Entry[];
-  candidates: SearchCandidate[];
-  bringsAdded: string[];
-};
-
-export const search = async (req: SearchRequest): Promise<SearchResult> => {
-  const r = await fetch("/api/search", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(req),
-  });
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText}: ${await r.text()}`);
-  return r.json();
-};
+export type { EmbedderStatus };
 
 export const fetchEmbedderStatus = async (): Promise<EmbedderStatus> => {
   const r = await fetch("/api/embeddings/status");

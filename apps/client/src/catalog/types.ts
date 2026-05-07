@@ -56,20 +56,3 @@ export type Entry = {
   createdAt: number;
   updatedAt: number;
 };
-
-export type FacetDraft = {
-  id?: string;
-  label: string;
-  body?: string;
-  mode?: FacetMode;
-  position?: number;
-};
-
-export type EntryInput = {
-  typeId: string;
-  name: string;
-  facets?: FacetDraft[];
-  cues?: string[];
-  connections?: { toEntryId: string; kind?: ConnectionKind }[];
-  tier?: DirectionTier;
-};

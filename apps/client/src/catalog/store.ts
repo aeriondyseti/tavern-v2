@@ -50,11 +50,7 @@ export const useCatalog = create<State & Actions>((set, get) => ({
   load: async () => {
     set({ error: null });
     try {
-      const [kinds, types, entries] = await Promise.all([
-        api.listKinds(),
-        api.listTypes(),
-        api.listEntries(),
-      ]);
+      const [kinds, types, entries] = await Promise.all([api.listKinds(), api.listTypes(), api.listEntries()]);
       set({ kinds, types, entries, loaded: true });
     } catch (e) {
       set({ error: e instanceof Error ? e.message : String(e) });
@@ -114,9 +110,7 @@ export const useCatalog = create<State & Actions>((set, get) => ({
       connections: draft.connections.map((c) => ({ toEntryId: c.toEntryId, kind: "brings" as const })),
       ...(draft.tier ? { tier: draft.tier } : {}),
     };
-    const saved = draft.id
-      ? await api.updateEntry(draft.id, payload)
-      : await api.createEntry(payload);
+    const saved = draft.id ? await api.updateEntry(draft.id, payload) : await api.createEntry(payload);
     set((s) => {
       const others = s.entries.filter((e) => e.id !== saved.id);
       return {

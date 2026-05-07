@@ -2,7 +2,6 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
-.pnpm-store/
 .turbo/
 .cache/
 coverage/
@@ -28,6 +27,7 @@ data/
 .idea/
 *.swp
 .claude/
+.vector-memory/
 
 # os
 Thumbs.db

@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import type { Beat, BeatEvent } from "@tavern/shared";
+import { create } from "zustand";
 
 import { beatsApi, streamBeat, streamRegenerate, streamReroll } from "./api.js";
 
@@ -100,9 +100,7 @@ export const useNarrator = create<State & Actions>((set, get) => ({
 
   regenerateBeat: async (sceneId, beatId, playerInput) => {
     if (get().live.streaming) return;
-    consumeStream(set, get, sceneId, (onEvent) =>
-      streamRegenerate(beatId, playerInput, onEvent),
-    );
+    consumeStream(set, get, sceneId, (onEvent) => streamRegenerate(beatId, playerInput, onEvent));
   },
 
   editNarratorOutput: async (sceneId, beatId, narratorOutput) => {

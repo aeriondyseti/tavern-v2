@@ -1,15 +1,15 @@
-import { and, asc, desc, eq, inArray, max, sql } from "drizzle-orm";
 import {
-  newId,
   type Beat,
   type BeatEvent,
   type BeatStatus,
   type BeatTranscript,
+  newId,
   type SearchCallRecord,
 } from "@tavern/shared";
+import { and, asc, desc, eq, inArray, max, sql } from "drizzle-orm";
 
-import { type Db } from "../db/client.js";
-import { beatTranscripts, beats, scenes } from "../db/schema.js";
+import type { Db } from "../db/client.js";
+import { beats, beatTranscripts, scenes } from "../db/schema.js";
 
 const beatToDto = (row: typeof beats.$inferSelect): Beat => ({
   id: row.id,
@@ -60,11 +60,7 @@ const nextBeatPosition = (db: Db, sceneId: string): number => {
   return (r?.m ?? -1) + 1;
 };
 
-export const createStreamingBeat = (
-  db: Db,
-  sceneId: string,
-  playerInput: string,
-): Beat => {
+export const createStreamingBeat = (db: Db, sceneId: string, playerInput: string): Beat => {
   const sceneExists = db.select({ id: scenes.id }).from(scenes).where(eq(scenes.id, sceneId)).get();
   if (!sceneExists) throw new Error(`scene ${sceneId} not found`);
   const id = newId();
@@ -83,11 +79,7 @@ export const createStreamingBeat = (
   return getBeat(db, id)!;
 };
 
-export const completeBeat = (
-  db: Db,
-  id: string,
-  patch: { status: BeatStatus; narratorOutput: string },
-): void => {
+export const completeBeat = (db: Db, id: string, patch: { status: BeatStatus; narratorOutput: string }): void => {
   db.update(beats)
     .set({
       status: patch.status,
@@ -157,12 +149,7 @@ export const setActiveAlt = (db: Db, id: string, activeAlt: number): Beat | null
   const row = db.select().from(beats).where(eq(beats.id, id)).get();
   if (!row) return null;
   if (activeAlt < -1 || activeAlt >= row.alts.length) return null;
-  const rows = db
-    .update(beats)
-    .set({ activeAlt })
-    .where(eq(beats.id, id))
-    .returning()
-    .all();
+  const rows = db.update(beats).set({ activeAlt }).where(eq(beats.id, id)).returning().all();
   return rows[0] ? beatToDto(rows[0]) : null;
 };
 
@@ -275,6 +262,6 @@ export const recentHistory = (
 };
 
 export const deleteBeat = (db: Db, id: string): boolean => {
-  const r = db.delete(beats).where(eq(beats.id, id)).run();
-  return r.changes > 0;
+  const r = db.delete(beats).where(eq(beats.id, id)).returning({ id: beats.id }).all();
+  return r.length > 0;
 };

@@ -70,10 +70,7 @@ export const QuickSwitcher = () => {
       className="fixed inset-0 z-50 flex items-start justify-center bg-zinc-950/80 pt-32"
       onClick={() => setOpen(false)}
     >
-      <div
-        className="w-[32rem] border border-zinc-700 bg-zinc-900 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-[32rem] border border-zinc-700 bg-zinc-900 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <input
           ref={inputRef}
           className="w-full bg-zinc-900 px-3 py-2 text-sm outline-none placeholder:text-zinc-600"
@@ -87,9 +84,7 @@ export const QuickSwitcher = () => {
         />
         <ul className="max-h-80 overflow-y-auto border-t border-zinc-800">
           {filtered.length === 0 && (
-            <li className="px-3 py-2 text-xs text-zinc-600">
-              {tales.length === 0 ? "No tales yet." : "No matches."}
-            </li>
+            <li className="px-3 py-2 text-xs text-zinc-600">{tales.length === 0 ? "No tales yet." : "No matches."}</li>
           )}
           {filtered.map((t, i) => (
             <li key={t.id}>

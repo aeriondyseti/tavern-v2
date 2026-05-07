@@ -11,8 +11,7 @@ export const DEFAULT_PROVIDER: EmbeddingProviderConfig = {
 
 let _provider: EmbeddingProviderConfig = DEFAULT_PROVIDER;
 
-export const getProvider = (): EmbeddingProviderConfig => _provider;
-export const setProvider = (p: EmbeddingProviderConfig) => {
+const setProvider = (p: EmbeddingProviderConfig) => {
   _provider = p;
 };
 
@@ -65,7 +64,7 @@ export const cosine = (a: Float32Array, b: Float32Array): number => {
   return denom === 0 ? 0 : dot / denom;
 };
 
-export { onEmbedderStatus, getEmbedderStatus, type EmbedderStatus } from "./local.js";
+export { type EmbedderStatus, getEmbedderStatus, onEmbedderStatus } from "./local.js";
 
 export const applyEmbeddingProvider = (s: {
   embeddingProvider: "local" | "api";

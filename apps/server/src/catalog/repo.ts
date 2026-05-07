@@ -1,4 +1,3 @@
-import { asc, eq, inArray, max } from "drizzle-orm";
 import {
   type ConnectionKind,
   type DirectionTier,
@@ -9,18 +8,10 @@ import {
   type KindId,
   newId,
 } from "@tavern/shared";
+import { asc, eq, inArray, max } from "drizzle-orm";
 
-import { type Db } from "../db/client.js";
-import {
-  connections,
-  cues,
-  directionTier,
-  entries,
-  facets,
-  kinds,
-  types,
-  KIND_DIRECTION,
-} from "../db/schema.js";
+import type { Db } from "../db/client.js";
+import { connections, cues, directionTier, entries, facets, KIND_DIRECTION, kinds, types } from "../db/schema.js";
 import { indexEntry, removeFromIndex } from "./indexer.js";
 
 const scheduleIndex = (db: Db, id: string) => {
@@ -83,15 +74,13 @@ export const createType = (db: Db, kindId: KindId, name: string): Type => {
     name,
     position: nextTypePosition(db, kindId),
   };
-  db.insert(types).values({ ...row, createdAt: now() }).run();
+  db.insert(types)
+    .values({ ...row, createdAt: now() })
+    .run();
   return row;
 };
 
-export const updateType = (
-  db: Db,
-  id: string,
-  patch: { name?: string; position?: number },
-): Type | null => {
+export const updateType = (db: Db, id: string, patch: { name?: string; position?: number }): Type | null => {
   const updates: Partial<typeof types.$inferInsert> = {};
   if (patch.name !== undefined) updates.name = patch.name;
   if (patch.position !== undefined) updates.position = patch.position;
@@ -103,8 +92,8 @@ export const updateType = (
 
 export const deleteType = (db: Db, id: string): boolean => {
   // cascade handles entries → facets/cues/connections/direction_tier
-  const r = db.delete(types).where(eq(types.id, id)).run();
-  return r.changes > 0;
+  const r = db.delete(types).where(eq(types.id, id)).returning({ id: types.id }).all();
+  return r.length > 0;
 };
 
 export const getEntry = (db: Db, id: string): Entry | null => {
@@ -117,7 +106,7 @@ export const getEntries = (db: Db, ids: string[]): Entry[] => {
   if (ids.length === 0) return [];
   const rows = db.select().from(entries).where(inArray(entries.id, ids)).all();
   const byId = new Map(rows.map((r) => [r.id, r]));
-  const ordered = ids.map((id) => byId.get(id)).filter((r): r is typeof rows[number] => r !== undefined);
+  const ordered = ids.map((id) => byId.get(id)).filter((r): r is (typeof rows)[number] => r !== undefined);
   return hydrateEntries(db, ordered);
 };
 
@@ -135,23 +124,10 @@ const hydrateEntries = (db: Db, rows: (typeof entries.$inferSelect)[]): Entry[] 
     return m;
   };
 
-  const facetRows = db
-    .select()
-    .from(facets)
-    .where(inArray(facets.entryId, ids))
-    .orderBy(asc(facets.position))
-    .all();
+  const facetRows = db.select().from(facets).where(inArray(facets.entryId, ids)).orderBy(asc(facets.position)).all();
   const cueRows = db.select().from(cues).where(inArray(cues.entryId, ids)).all();
-  const connRows = db
-    .select()
-    .from(connections)
-    .where(inArray(connections.fromEntryId, ids))
-    .all();
-  const tierRows = db
-    .select()
-    .from(directionTier)
-    .where(inArray(directionTier.entryId, ids))
-    .all();
+  const connRows = db.select().from(connections).where(inArray(connections.fromEntryId, ids)).all();
+  const tierRows = db.select().from(directionTier).where(inArray(directionTier.entryId, ids)).all();
 
   const facetsByEntry = groupBy(facetRows);
   const cuesByEntry = groupBy(cueRows);
@@ -182,10 +158,7 @@ const hydrateEntries = (db: Db, rows: (typeof entries.$inferSelect)[]): Entry[] 
   }));
 };
 
-export const listEntries = (
-  db: Db,
-  opts: { typeId?: string; kindId?: KindId; q?: string } = {},
-): Entry[] => {
+export const listEntries = (db: Db, opts: { typeId?: string; kindId?: KindId; q?: string } = {}): Entry[] => {
   const base = db.select().from(entries).orderBy(asc(entries.name));
   let rows: (typeof entries.$inferSelect)[];
   if (opts.typeId) {
@@ -203,9 +176,7 @@ export const listEntries = (
     rows = base.all();
   }
 
-  const filtered = opts.q
-    ? rows.filter((r) => r.name.toLowerCase().includes(opts.q!.toLowerCase()))
-    : rows;
+  const filtered = opts.q ? rows.filter((r) => r.name.toLowerCase().includes(opts.q!.toLowerCase())) : rows;
   return hydrateEntries(db, filtered);
 };
 
@@ -218,9 +189,7 @@ export const createEntry = (db: Db, input: EntryCreate): Entry => {
   const id = newId();
   const ts = now();
   db.transaction((tx) => {
-    tx.insert(entries)
-      .values({ id, typeId: input.typeId, name: input.name, createdAt: ts, updatedAt: ts })
-      .run();
+    tx.insert(entries).values({ id, typeId: input.typeId, name: input.name, createdAt: ts, updatedAt: ts }).run();
     insertFacets(tx, id, input.facets);
     insertCues(tx, id, input.cues);
     insertConnections(tx, id, input.connections);
@@ -264,20 +233,13 @@ export const updateEntry = (db: Db, id: string, patch: EntryUpdate): Entry | nul
           .onConflictDoUpdate({ target: directionTier.entryId, set: { tier: patch.tier } })
           .run();
       } else {
-        tx.insert(directionTier)
-          .values({ entryId: id, tier: "normal" })
-          .onConflictDoNothing()
-          .run();
+        tx.insert(directionTier).values({ entryId: id, tier: "normal" }).onConflictDoNothing().run();
       }
     } else {
       tx.delete(directionTier).where(eq(directionTier.entryId, id)).run();
     }
   });
-  if (
-    patch.name !== undefined ||
-    patch.facets !== undefined ||
-    patch.cues !== undefined
-  ) {
+  if (patch.name !== undefined || patch.facets !== undefined || patch.cues !== undefined) {
     scheduleIndex(db, id);
   }
   return getEntry(db, id);
@@ -285,8 +247,8 @@ export const updateEntry = (db: Db, id: string, patch: EntryUpdate): Entry | nul
 
 export const deleteEntry = (db: Db, id: string): boolean => {
   removeFromIndex(db, id);
-  const r = db.delete(entries).where(eq(entries.id, id)).run();
-  return r.changes > 0;
+  const r = db.delete(entries).where(eq(entries.id, id)).returning({ id: entries.id }).all();
+  return r.length > 0;
 };
 
 const insertFacets = (tx: Db, entryId: string, list: FacetInput[]) => {
@@ -314,11 +276,7 @@ const insertCues = (tx: Db, entryId: string, list: string[]) => {
   tx.insert(cues).values(rows).run();
 };
 
-const insertConnections = (
-  tx: Db,
-  fromEntryId: string,
-  list: { toEntryId: string; kind?: ConnectionKind }[],
-) => {
+const insertConnections = (tx: Db, fromEntryId: string, list: { toEntryId: string; kind?: ConnectionKind }[]) => {
   const rows = list
     .filter((c) => c.toEntryId !== fromEntryId)
     .map((c) => ({

@@ -1,8 +1,8 @@
+import { SetupData } from "@tavern/shared";
 import { Hono } from "hono";
 import { z } from "zod";
-import { SetupData } from "@tavern/shared";
 
-import { type Db } from "../db/client.js";
+import type { Db } from "../db/client.js";
 import * as repo from "./repo.js";
 
 const TaleCreate = z.object({
@@ -56,9 +56,7 @@ export const buildTalesRoutes = (db: Db) => {
   });
 
   r.delete("/tales/:id", (c) =>
-    repo.deleteTale(db, c.req.param("id"))
-      ? c.body(null, 204)
-      : c.json({ error: "not found" }, 404),
+    repo.deleteTale(db, c.req.param("id")) ? c.body(null, 204) : c.json({ error: "not found" }, 404),
   );
 
   r.put("/tales/:id/setup", async (c) => {
@@ -71,17 +69,13 @@ export const buildTalesRoutes = (db: Db) => {
   r.put("/tales/:id/pinned", async (c) => {
     const body = PinnedReplace.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    return c.json(
-      repo.replacePinned(db, { kind: "tale", id: c.req.param("id") }, body.data.entryIds),
-    );
+    return c.json(repo.replacePinned(db, { kind: "tale", id: c.req.param("id") }, body.data.entryIds));
   });
 
   r.put("/tales/:id/anchor-facets", async (c) => {
     const body = AnchorFacetsReplace.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    return c.json(
-      repo.replaceAnchorFacets(db, { taleId: c.req.param("id"), sceneId: null }, body.data.facets),
-    );
+    return c.json(repo.replaceAnchorFacets(db, { taleId: c.req.param("id"), sceneId: null }, body.data.facets));
   });
 
   r.post("/tales/:id/scenes", async (c) => {
@@ -104,9 +98,7 @@ export const buildTalesRoutes = (db: Db) => {
   });
 
   r.delete("/scenes/:id", (c) =>
-    repo.deleteScene(db, c.req.param("id"))
-      ? c.body(null, 204)
-      : c.json({ error: "not found" }, 404),
+    repo.deleteScene(db, c.req.param("id")) ? c.body(null, 204) : c.json({ error: "not found" }, 404),
   );
 
   r.put("/scenes/:id/adjustments", async (c) => {
@@ -117,17 +109,13 @@ export const buildTalesRoutes = (db: Db) => {
   });
 
   r.delete("/scenes/:id/adjustments", (c) =>
-    repo.dropSceneAdjustments(db, c.req.param("id"))
-      ? c.body(null, 204)
-      : c.json({ error: "no adjustments" }, 404),
+    repo.dropSceneAdjustments(db, c.req.param("id")) ? c.body(null, 204) : c.json({ error: "no adjustments" }, 404),
   );
 
   r.put("/scenes/:id/pinned", async (c) => {
     const body = PinnedReplace.safeParse(await c.req.json());
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
-    return c.json(
-      repo.replacePinned(db, { kind: "scene", id: c.req.param("id") }, body.data.entryIds),
-    );
+    return c.json(repo.replacePinned(db, { kind: "scene", id: c.req.param("id") }, body.data.entryIds));
   });
 
   r.put("/scenes/:id/anchor-facets", async (c) => {
@@ -135,13 +123,7 @@ export const buildTalesRoutes = (db: Db) => {
     if (!body.success) return c.json({ error: body.error.flatten() }, 400);
     const scene = repo.getScene(db, c.req.param("id"));
     if (!scene) return c.json({ error: "not found" }, 404);
-    return c.json(
-      repo.replaceAnchorFacets(
-        db,
-        { taleId: scene.taleId, sceneId: c.req.param("id") },
-        body.data.facets,
-      ),
-    );
+    return c.json(repo.replaceAnchorFacets(db, { taleId: scene.taleId, sceneId: c.req.param("id") }, body.data.facets));
   });
 
   return r;

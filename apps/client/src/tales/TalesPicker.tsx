@@ -24,10 +24,7 @@ export const TalesPicker = () => {
     <aside className="flex h-full w-60 flex-col border-r border-zinc-800">
       <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2">
         <span className="font-serif text-sm text-zinc-300">Tales</span>
-        <button
-          className="text-xs text-zinc-400 hover:text-zinc-100"
-          onClick={() => setCreating(true)}
-        >
+        <button className="text-xs text-zinc-400 hover:text-zinc-100" onClick={() => setCreating(true)}>
           + new
         </button>
       </header>
@@ -35,7 +32,6 @@ export const TalesPicker = () => {
         {creating && (
           <li className="border-b border-zinc-900 p-2">
             <input
-              autoFocus
               className="w-full bg-zinc-900 px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-zinc-600"
               placeholder="tale name"
               value={name}
@@ -69,8 +65,7 @@ export const TalesPicker = () => {
                 className="invisible text-xs text-zinc-500 hover:text-rose-400 group-hover:visible"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (confirm(`Delete tale "${t.name}"? Scenes and beats will be lost.`))
-                    deleteTale(t.id);
+                  if (confirm(`Delete tale "${t.name}"? Scenes and beats will be lost.`)) deleteTale(t.id);
                 }}
               >
                 ×

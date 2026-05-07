@@ -34,8 +34,9 @@ export const consumeSseStream = (
         const { value, done } = await reader.read();
         if (done) break;
         buf += decoder.decode(value, { stream: true });
-        let idx;
-        while ((idx = buf.indexOf("\n\n")) !== -1) {
+        while (true) {
+          const idx = buf.indexOf("\n\n");
+          if (idx === -1) break;
           const chunk = buf.slice(0, idx);
           buf = buf.slice(idx + 2);
           const lines = chunk.split("\n");

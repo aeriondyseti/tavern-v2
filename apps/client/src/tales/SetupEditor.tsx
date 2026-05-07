@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
 import { MODEL_OPTIONS, type ModelId, type SetupData } from "@tavern/shared";
+import { useEffect, useMemo, useState } from "react";
 
 import { useCatalog } from "../catalog/store.js";
-import { DIRECTION_TIERS, KIND_DIRECTION } from "../catalog/types.js";
 import type { DirectionTier } from "../catalog/types.js";
+import { DIRECTION_TIERS, KIND_DIRECTION } from "../catalog/types.js";
 
 const TIER_LABEL: Record<DirectionTier, string> = {
   absolute: "Absolute",
@@ -33,18 +33,12 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
   );
 
   const allActiveIds = useMemo(
-    () =>
-      new Set(
-        DIRECTION_TIERS.flatMap((t) => draft.directions[t]).filter((id): id is string => Boolean(id)),
-      ),
+    () => new Set(DIRECTION_TIERS.flatMap((t) => draft.directions[t]).filter((id): id is string => Boolean(id))),
     [draft.directions],
   );
 
   const inactiveDirections = useMemo(
-    () =>
-      directionEntries
-        .filter((e) => !allActiveIds.has(e.id))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+    () => directionEntries.filter((e) => !allActiveIds.has(e.id)).sort((a, b) => a.name.localeCompare(b.name)),
     [directionEntries, allActiveIds],
   );
 
@@ -73,10 +67,8 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
   const updateModel = <K extends keyof SetupData["model"]>(key: K, val: SetupData["model"][K]) =>
     setDraft({ ...draft, model: { ...draft.model, [key]: val } });
 
-  const updateRetrieval = <K extends keyof SetupData["retrieval"]>(
-    key: K,
-    val: SetupData["retrieval"][K],
-  ) => setDraft({ ...draft, retrieval: { ...draft.retrieval, [key]: val } });
+  const updateRetrieval = <K extends keyof SetupData["retrieval"]>(key: K, val: SetupData["retrieval"][K]) =>
+    setDraft({ ...draft, retrieval: { ...draft.retrieval, [key]: val } });
 
   const updateTool = (key: keyof SetupData["tools"], val: boolean) =>
     setDraft({ ...draft, tools: { ...draft.tools, [key]: val } });
@@ -109,21 +101,14 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
         <h4 className="mb-2 text-xs uppercase tracking-wide text-zinc-500">Active Directions</h4>
         {DIRECTION_TIERS.map((tier) => (
           <div key={tier} className="mb-3">
-            <div className="mb-1 text-[11px] uppercase tracking-wide text-zinc-500">
-              {TIER_LABEL[tier]}
-            </div>
+            <div className="mb-1 text-[11px] uppercase tracking-wide text-zinc-500">{TIER_LABEL[tier]}</div>
             <ul className="space-y-1">
-              {draft.directions[tier].length === 0 && (
-                <li className="text-[11px] italic text-zinc-700">empty</li>
-              )}
+              {draft.directions[tier].length === 0 && <li className="text-[11px] italic text-zinc-700">empty</li>}
               {draft.directions[tier].map((id, i) => {
                 const e = entries.find((x) => x.id === id);
                 if (!e) return null;
                 return (
-                  <li
-                    key={id}
-                    className="flex items-center gap-1 border border-zinc-800 px-2 py-1 text-sm"
-                  >
+                  <li key={id} className="flex items-center gap-1 border border-zinc-800 px-2 py-1 text-sm">
                     <span className="flex-1 text-zinc-200">{e.name}</span>
                     <button
                       className="text-xs text-zinc-500 hover:text-zinc-200 disabled:opacity-30"
@@ -150,10 +135,7 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
                         </option>
                       ))}
                     </select>
-                    <button
-                      className="text-xs text-zinc-500 hover:text-rose-400"
-                      onClick={() => moveToTier(id, null)}
-                    >
+                    <button className="text-xs text-zinc-500 hover:text-rose-400" onClick={() => moveToTier(id, null)}>
                       ×
                     </button>
                   </li>
@@ -320,11 +302,7 @@ export const SetupEditor = ({ value, onChange, scope }: Props) => {
         <ul className="space-y-1">
           {(Object.keys(draft.tools) as (keyof SetupData["tools"])[]).map((k) => (
             <li key={k} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={draft.tools[k]}
-                onChange={(e) => updateTool(k, e.target.checked)}
-              />
+              <input type="checkbox" checked={draft.tools[k]} onChange={(e) => updateTool(k, e.target.checked)} />
               <span className="text-zinc-300">{k}</span>
             </li>
           ))}

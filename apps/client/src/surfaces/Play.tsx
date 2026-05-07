@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import type { SetupData } from "@tavern/shared";
+import { useEffect, useState } from "react";
 
 import { useCatalog } from "../catalog/store.js";
 import { BeatStream } from "../narrator/BeatStream.js";
@@ -9,8 +9,8 @@ import { AnchorEditor } from "../tales/AnchorEditor.js";
 import { PinnedEditor } from "../tales/PinnedEditor.js";
 import { ScenesPanel } from "../tales/ScenesPanel.js";
 import { SetupEditor } from "../tales/SetupEditor.js";
-import { TalesPicker } from "../tales/TalesPicker.js";
 import { useTales } from "../tales/store.js";
+import { TalesPicker } from "../tales/TalesPicker.js";
 import type { Scene, Tale } from "../tales/types.js";
 
 export const Play = () => {
@@ -49,15 +49,13 @@ export const Play = () => {
           onTalePinnedSave={(ids) => saveTalePinned(activeTale.id, ids)}
           onTaleProseSave={(p) => updateTale(activeTale.id, { anchorProse: p }).then(() => undefined)}
           onTaleFacetsSave={(f) => saveTaleAnchorFacets(activeTale.id, f)}
-          onSceneAdjustmentsSave={(d) => activeScene ? saveSceneAdjustments(activeScene.id, d) : Promise.resolve()}
-          onSceneAdjustmentsDrop={() => activeScene ? dropSceneAdjustments(activeScene.id) : Promise.resolve()}
-          onScenePinnedSave={(ids) => activeScene ? saveScenePinned(activeScene.id, ids) : Promise.resolve()}
+          onSceneAdjustmentsSave={(d) => (activeScene ? saveSceneAdjustments(activeScene.id, d) : Promise.resolve())}
+          onSceneAdjustmentsDrop={() => (activeScene ? dropSceneAdjustments(activeScene.id) : Promise.resolve())}
+          onScenePinnedSave={(ids) => (activeScene ? saveScenePinned(activeScene.id, ids) : Promise.resolve())}
           onSceneProseSave={async (p) => {
             if (activeScene) await updateScene(activeScene.id, { anchorProse: p });
           }}
-          onSceneFacetsSave={(f) =>
-            activeScene ? saveSceneAnchorFacets(activeScene.id, f) : Promise.resolve()
-          }
+          onSceneFacetsSave={(f) => (activeScene ? saveSceneAnchorFacets(activeScene.id, f) : Promise.resolve())}
         />
       )}
     </div>
@@ -76,10 +74,7 @@ const BeatStreamPane = ({ scene }: { scene: Scene }) => {
         <BeatStream sceneId={scene.id} sceneName={scene.name} />
       </div>
       <div className="flex items-center justify-end border-t border-zinc-800 px-3 py-1 text-xs">
-        <button
-          className="text-zinc-500 hover:text-zinc-200"
-          onClick={() => setShowDebug((v) => !v)}
-        >
+        <button className="text-zinc-500 hover:text-zinc-200" onClick={() => setShowDebug((v) => !v)}>
           {showDebug ? "hide debug" : "show debug"}
         </button>
       </div>
@@ -157,9 +152,7 @@ const TaleDetail = ({
             <div className="space-y-6">
               <SetupEditor scope="tale" value={tale.setup} onChange={onTaleSetupSave} />
               <div>
-                <h3 className="mb-2 font-serif text-sm uppercase tracking-wide text-zinc-300">
-                  Anchor
-                </h3>
+                <h3 className="mb-2 font-serif text-sm uppercase tracking-wide text-zinc-300">Anchor</h3>
                 <AnchorEditor
                   prose={tale.anchorProse}
                   onProseChange={onTaleProseSave}
@@ -168,9 +161,7 @@ const TaleDetail = ({
                 />
               </div>
               <div>
-                <h3 className="mb-2 font-serif text-sm uppercase tracking-wide text-zinc-300">
-                  Pinned
-                </h3>
+                <h3 className="mb-2 font-serif text-sm uppercase tracking-wide text-zinc-300">Pinned</h3>
                 <PinnedEditor pinned={tale.pinned} onChange={onTalePinnedSave} />
               </div>
               <ScenesPanel />
@@ -183,10 +174,7 @@ const TaleDetail = ({
                   {scene.hasAdjustments ? "scene has adjustments" : "inheriting tale setup"}
                 </span>
                 {scene.hasAdjustments ? (
-                  <button
-                    className="text-xs text-zinc-400 hover:text-rose-300"
-                    onClick={onSceneAdjustmentsDrop}
-                  >
+                  <button className="text-xs text-zinc-400 hover:text-rose-300" onClick={onSceneAdjustmentsDrop}>
                     drop adjustments
                   </button>
                 ) : (
@@ -202,9 +190,7 @@ const TaleDetail = ({
                 <SetupEditor scope="scene" value={scene.adjustments} onChange={onSceneAdjustmentsSave} />
               )}
               <div>
-                <h3 className="mb-2 font-serif text-sm uppercase tracking-wide text-zinc-300">
-                  Scene anchor
-                </h3>
+                <h3 className="mb-2 font-serif text-sm uppercase tracking-wide text-zinc-300">Scene anchor</h3>
                 <AnchorEditor
                   prose={scene.anchorProse}
                   onProseChange={onSceneProseSave}
@@ -213,9 +199,7 @@ const TaleDetail = ({
                 />
               </div>
               <div>
-                <h3 className="mb-2 font-serif text-sm uppercase tracking-wide text-zinc-300">
-                  Scene-only pinned
-                </h3>
+                <h3 className="mb-2 font-serif text-sm uppercase tracking-wide text-zinc-300">Scene-only pinned</h3>
                 <PinnedEditor pinned={scene.pinned} onChange={onScenePinnedSave} />
               </div>
             </div>

@@ -8,15 +8,12 @@ import { QuickSwitcher } from "./tales/QuickSwitcher.js";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `px-2.5 py-1 text-xs uppercase tracking-wide ${
-    isActive
-      ? "text-zinc-50 border-b border-zinc-50"
-      : "text-zinc-500 hover:text-zinc-200"
+    isActive ? "text-zinc-50 border-b border-zinc-50" : "text-zinc-500 hover:text-zinc-200"
   }`;
 
 const isMac = (() => {
   if (typeof navigator === "undefined") return false;
-  const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } })
-    .userAgentData;
+  const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
   const platform = uaData?.platform ?? navigator.platform ?? navigator.userAgent ?? "";
   return /mac|iphone|ipad/i.test(platform);
 })();

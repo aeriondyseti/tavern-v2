@@ -37,10 +37,7 @@ export const TypeTree = () => {
           <div key={k.id} className="border-b border-zinc-800">
             <header className="flex items-center justify-between px-3 py-2">
               <span className="font-serif text-zinc-300">{k.label}</span>
-              <button
-                className="text-xs text-zinc-500 hover:text-zinc-200"
-                onClick={() => setAdding(k.id as KindId)}
-              >
+              <button className="text-xs text-zinc-500 hover:text-zinc-200" onClick={() => setAdding(k.id as KindId)}>
                 + new
               </button>
             </header>
@@ -59,7 +56,6 @@ export const TypeTree = () => {
                 <li key={t.id}>
                   {renamingId === t.id ? (
                     <input
-                      autoFocus
                       className="m-1 w-[calc(100%-0.5rem)] bg-zinc-900 px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-zinc-600"
                       value={renameDraft}
                       onChange={(e) => setRenameDraft(e.target.value)}
@@ -101,7 +97,6 @@ export const TypeTree = () => {
               {adding === k.id && (
                 <li>
                   <input
-                    autoFocus
                     placeholder="type name"
                     className="m-1 w-[calc(100%-0.5rem)] bg-zinc-900 px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-zinc-600"
                     value={draftName}

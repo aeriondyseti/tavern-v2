@@ -1,10 +1,10 @@
+import { SearchRequest } from "@tavern/shared";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import { SearchRequest } from "@tavern/shared";
 
-import { type Db } from "../db/client.js";
+import type { Db } from "../db/client.js";
 import { getEmbedderStatus, onEmbedderStatus } from "../embeddings/index.js";
-import { reindexAll, type ReindexProgress } from "./indexer.js";
+import { type ReindexProgress, reindexAll } from "./indexer.js";
 import { searchWorld } from "./search.js";
 
 let _reindexInFlight = false;

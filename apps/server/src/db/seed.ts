@@ -1,4 +1,4 @@
-import { type Db } from "./client.js";
+import type { Db } from "./client.js";
 import { KIND_DIRECTION, KIND_WORLD, kinds } from "./schema.js";
 
 export const seedKinds = (db: Db) => {

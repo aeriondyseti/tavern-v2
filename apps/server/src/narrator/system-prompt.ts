@@ -1,7 +1,7 @@
-import { asc, eq, inArray, sql } from "drizzle-orm";
 import type { DirectionTier, SetupData } from "@tavern/shared";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 
-import { type Db } from "../db/client.js";
+import type { Db } from "../db/client.js";
 import { anchorFacets, entries, facets, scenes, tales, types } from "../db/schema.js";
 import { effectivePinned } from "../tales/repo.js";
 
@@ -22,12 +22,7 @@ const renderDirections = (db: Db, ids: string[]): DirectionRendered[] => {
   if (ids.length === 0) return [];
   const entryRows = db.select().from(entries).where(inArray(entries.id, ids)).all();
   const byId = new Map(entryRows.map((r) => [r.id, r]));
-  const facetRows = db
-    .select()
-    .from(facets)
-    .where(inArray(facets.entryId, ids))
-    .orderBy(asc(facets.position))
-    .all();
+  const facetRows = db.select().from(facets).where(inArray(facets.entryId, ids)).orderBy(asc(facets.position)).all();
   const alwaysFacetsByEntry = new Map<string, string[]>();
   for (const f of facetRows) {
     if (f.mode !== "always") continue;
@@ -48,12 +43,7 @@ const renderDirections = (db: Db, ids: string[]): DirectionRendered[] => {
     });
 };
 
-const renderAnchor = (
-  db: Db,
-  taleId: string,
-  taleProse: string,
-  sceneProse: string | null,
-): string[] => {
+const renderAnchor = (db: Db, taleId: string, taleProse: string, sceneProse: string | null): string[] => {
   const lines: string[] = [];
   if (taleProse.trim()) lines.push(`Tale: ${taleProse.trim()}`);
   const taleFacets = db
@@ -66,7 +56,7 @@ const renderAnchor = (
     if (f.body.trim()) lines.push(`  ${f.label}: ${f.body}`);
     else lines.push(`  ${f.label}`);
   }
-  if (sceneProse !== null && sceneProse.trim()) {
+  if (sceneProse?.trim()) {
     lines.push(`Scene: ${sceneProse.trim()}`);
   }
   return lines;
@@ -78,11 +68,7 @@ const renderPinned = (db: Db, taleId: string, sceneId: string | null): PinnedRen
   const list = effectivePinned(db, taleId, sceneId);
   if (list.length === 0) return [];
   const typeIds = [...new Set(list.map((p) => p.typeId))];
-  const typeRows = db
-    .select({ id: types.id, name: types.name })
-    .from(types)
-    .where(inArray(types.id, typeIds))
-    .all();
+  const typeRows = db.select({ id: types.id, name: types.name }).from(types).where(inArray(types.id, typeIds)).all();
   const typeNameById = new Map(typeRows.map((t) => [t.id, t.name]));
   return list.map((p) => ({
     entryId: p.entryId,
@@ -104,9 +90,7 @@ export const composeSystemPrompt = (
 ): ComposedSystemPrompt => {
   const tale = db.select().from(tales).where(eq(tales.id, args.taleId)).get();
   if (!tale) throw new Error(`tale ${args.taleId} not found`);
-  const scene = args.sceneId
-    ? db.select().from(scenes).where(eq(scenes.id, args.sceneId)).get()
-    : null;
+  const scene = args.sceneId ? db.select().from(scenes).where(eq(scenes.id, args.sceneId)).get() : null;
 
   const directionsByTier: Record<DirectionTier, DirectionRendered[]> = {
     absolute: renderDirections(db, args.setup.directions.absolute),
@@ -133,9 +117,7 @@ export const composeSystemPrompt = (
   }
   if (pinnedRows.length > 0) {
     sections.push("");
-    sections.push(
-      "Before this turn, ensure you have these in context. If you don't, call get_entry first:",
-    );
+    sections.push("Before this turn, ensure you have these in context. If you don't, call get_entry first:");
     for (const p of pinnedRows) {
       sections.push(`- ${p.name} (id: ${p.entryId}) — ${p.typeName}`);
     }

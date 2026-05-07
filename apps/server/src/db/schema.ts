@@ -1,12 +1,6 @@
+import type { ConnectionKind, DirectionTier, FacetMode, KindId } from "@tavern/shared";
 import { sql } from "drizzle-orm";
 import { blob, check, index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
-
-import type {
-  ConnectionKind,
-  DirectionTier,
-  FacetMode,
-  KindId,
-} from "@tavern/shared";
 
 // Hardcoded here (rather than imported from @tavern/shared) because drizzle-kit's
 // CJS loader can't resolve through workspace TS sources. The `satisfies` clauses
@@ -39,9 +33,7 @@ export const types = sqliteTable(
       .references(() => kinds.id),
     name: text("name").notNull(),
     position: integer("position").notNull().default(0),
-    createdAt: integer("created_at")
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
   (t) => ({
     kindNameIdx: uniqueIndex("types_kind_name_unique").on(t.kindId, t.name),
@@ -58,12 +50,8 @@ export const entries = sqliteTable(
     name: text("name").notNull(),
     embeddingVec: blob("embedding_vec", { mode: "buffer" }),
     embeddingModel: text("embedding_model"),
-    createdAt: integer("created_at")
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
-    updatedAt: integer("updated_at")
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+    updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
   (t) => ({
     typeNameIdx: uniqueIndex("entries_type_name_unique").on(t.typeId, t.name),
@@ -145,12 +133,8 @@ export const tales = sqliteTable("tales", {
     .notNull()
     .references(() => setups.id),
   activeSceneId: text("active_scene_id"),
-  createdAt: integer("created_at")
-    .notNull()
-    .default(sql`(unixepoch() * 1000)`),
-  updatedAt: integer("updated_at")
-    .notNull()
-    .default(sql`(unixepoch() * 1000)`),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
 });
 
 export const scenes = sqliteTable(
@@ -164,9 +148,7 @@ export const scenes = sqliteTable(
     anchorProse: text("anchor_prose").notNull().default(""),
     adjustmentsId: text("adjustments_id").references(() => setups.id),
     position: integer("position").notNull().default(0),
-    createdAt: integer("created_at")
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
   (t) => ({
     taleIdx: index("scenes_tale_idx").on(t.taleId),
@@ -187,10 +169,7 @@ export const pinned = sqliteTable(
   (t) => ({
     taleIdx: index("pinned_tale_idx").on(t.taleId),
     sceneIdx: index("pinned_scene_idx").on(t.sceneId),
-    scopeCheck: check(
-      "pinned_scope_check",
-      sql`${t.taleId} IS NOT NULL OR ${t.sceneId} IS NOT NULL`,
-    ),
+    scopeCheck: check("pinned_scope_check", sql`${t.taleId} IS NOT NULL OR ${t.sceneId} IS NOT NULL`),
   }),
 );
 
@@ -231,9 +210,7 @@ export const beats = sqliteTable(
       .notNull()
       .default([]),
     activeAlt: integer("active_alt").notNull().default(-1),
-    createdAt: integer("created_at")
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
     completedAt: integer("completed_at"),
   },
   (t) => ({
@@ -251,15 +228,10 @@ export const beatTranscripts = sqliteTable(
     altIndex: integer("alt_index").notNull().default(-1),
     requestBody: text("request_body", { mode: "json" }).$type<unknown>(),
     events: text("events", { mode: "json" }).$type<unknown[]>().notNull().default([]),
-    searchCalls: text("search_calls", { mode: "json" })
-      .$type<unknown[]>()
-      .notNull()
-      .default([]),
+    searchCalls: text("search_calls", { mode: "json" }).$type<unknown[]>().notNull().default([]),
     model: text("model").notNull(),
     durationMs: integer("duration_ms"),
-    createdAt: integer("created_at")
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   },
   (t) => ({
     beatIdx: index("beat_transcripts_beat_idx").on(t.beatId),
@@ -275,12 +247,8 @@ export const settings = sqliteTable("settings", {
   defaultTemperature: real("default_temperature").notNull().default(1.0),
   defaultMaxTokens: integer("default_max_tokens").notNull().default(4096),
   defaultThinkingBudget: integer("default_thinking_budget"),
-  embeddingProvider: text("embedding_provider", { enum: EMBEDDING_PROVIDERS })
-    .notNull()
-    .default("local"),
-  embeddingModelLocal: text("embedding_model_local")
-    .notNull()
-    .default("Xenova/bge-small-en-v1.5"),
+  embeddingProvider: text("embedding_provider", { enum: EMBEDDING_PROVIDERS }).notNull().default("local"),
+  embeddingModelLocal: text("embedding_model_local").notNull().default("Xenova/bge-small-en-v1.5"),
   embeddingApiUrl: text("embedding_api_url"),
   embeddingApiKey: text("embedding_api_key"),
   embeddingApiModel: text("embedding_api_model"),

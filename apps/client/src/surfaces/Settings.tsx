@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import {
   MODEL_OPTIONS,
   type ModelId,
@@ -6,14 +5,10 @@ import {
   type Settings as SettingsData,
   type SettingsPatch,
 } from "@tavern/shared";
+import { useEffect, useRef, useState } from "react";
 
 import { useCatalog } from "../catalog/store.js";
-import {
-  downloadBackup,
-  settingsApi,
-  uploadRestore,
-  type StorageInfo,
-} from "../settings/api.js";
+import { downloadBackup, type StorageInfo, settingsApi, uploadRestore } from "../settings/api.js";
 
 export const Settings = () => {
   const [settings, setSettings] = useState<SettingsData | null>(null);
@@ -48,8 +43,7 @@ export const Settings = () => {
       const patch: SettingsPatch = {};
       (Object.keys(draft) as (keyof SettingsData)[]).forEach((k) => {
         if (JSON.stringify(draft[k]) !== JSON.stringify(settings[k])) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (patch as any)[k] = draft[k];
+          (patch as Record<string, unknown>)[k] = draft[k];
         }
       });
       const next = await settingsApi.patch(patch);
@@ -62,8 +56,7 @@ export const Settings = () => {
     }
   };
 
-  const update = <K extends keyof SettingsData>(key: K, val: SettingsData[K]) =>
-    setDraft({ ...draft, [key]: val });
+  const update = <K extends keyof SettingsData>(key: K, val: SettingsData[K]) => setDraft({ ...draft, [key]: val });
 
   const onRestore = async (mode: "merge" | "replace") => {
     const file = fileRef.current?.files?.[0];
@@ -139,9 +132,7 @@ export const Settings = () => {
             }}
           />
         </Field>
-        <p className="text-xs text-zinc-500">
-          New Tales pick these up. Existing Tales keep their per-Tale Setup.
-        </p>
+        <p className="text-xs text-zinc-500">New Tales pick these up. Existing Tales keep their per-Tale Setup.</p>
       </Section>
 
       <Section title="Embeddings">
@@ -149,9 +140,7 @@ export const Settings = () => {
           <select
             className="bg-zinc-900 px-2 py-1"
             value={draft.embeddingProvider}
-            onChange={(e) =>
-              update("embeddingProvider", e.target.value as SettingsData["embeddingProvider"])
-            }
+            onChange={(e) => update("embeddingProvider", e.target.value as SettingsData["embeddingProvider"])}
           >
             <option value="local">local (transformers.js)</option>
             <option value="api">api (OpenAI-compatible)</option>
@@ -198,8 +187,7 @@ export const Settings = () => {
           </>
         )}
         <p className="text-xs text-zinc-500">
-          Switching models invalidates existing embedding vectors. Run "reindex all" from the
-          Catalog after saving.
+          Switching models invalidates existing embedding vectors. Run "reindex all" from the Catalog after saving.
         </p>
       </Section>
 
@@ -218,25 +206,15 @@ export const Settings = () => {
         <div className="space-y-2">
           <input ref={fileRef} type="file" accept="application/json" className="text-xs" />
           <div className="flex gap-2">
-            <button
-              className="bg-zinc-800 px-3 py-1 text-xs hover:bg-zinc-700"
-              onClick={() => onRestore("merge")}
-            >
+            <button className="bg-zinc-800 px-3 py-1 text-xs hover:bg-zinc-700" onClick={() => onRestore("merge")}>
               restore (merge)
             </button>
-            <button
-              className="bg-zinc-800 px-3 py-1 text-xs hover:bg-zinc-700"
-              onClick={() => onRestore("replace")}
-            >
+            <button className="bg-zinc-800 px-3 py-1 text-xs hover:bg-zinc-700" onClick={() => onRestore("replace")}>
               restore (replace)
             </button>
           </div>
-          {restoreMessage && (
-            <p className="text-xs text-zinc-400">{restoreMessage}</p>
-          )}
-          <p className="text-xs text-zinc-500">
-            Catalog only — Tales, Scenes, and Beats stay on this server.
-          </p>
+          {restoreMessage && <p className="text-xs text-zinc-400">{restoreMessage}</p>}
+          <p className="text-xs text-zinc-500">Catalog only — Tales, Scenes, and Beats stay on this server.</p>
         </div>
       </Section>
 
@@ -278,11 +256,7 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 const ProviderSection = ({ oauth }: { oauth: OauthStatus }) => (
   <Section title="Provider">
     <Field label="claude oauth">
-      <span
-        className={
-          oauth.state === "present" ? "text-emerald-400" : "text-rose-400"
-        }
-      >
+      <span className={oauth.state === "present" ? "text-emerald-400" : "text-rose-400"}>
         {oauth.state === "present" ? "logged in" : "not logged in"}
       </span>
     </Field>
@@ -291,8 +265,7 @@ const ProviderSection = ({ oauth }: { oauth: OauthStatus }) => (
     </Field>
     {oauth.state === "missing" && (
       <p className="text-xs text-zinc-500">
-        Run <code className="text-zinc-300">claude login</code> in a terminal, then refresh this
-        page.
+        Run <code className="text-zinc-300">claude login</code> in a terminal, then refresh this page.
       </p>
     )}
   </Section>

@@ -17,7 +17,8 @@ export const AnchorEditor = ({ prose, onProseChange, facets, onFacetsChange }: P
   useEffect(() => setFacetDraft(facets.map((f) => ({ label: f.label, body: f.body }))), [facets]);
 
   const proseDirty = proseDraft !== prose;
-  const facetsDirty = JSON.stringify(facetDraft) !== JSON.stringify(facets.map((f) => ({ label: f.label, body: f.body })));
+  const facetsDirty =
+    JSON.stringify(facetDraft) !== JSON.stringify(facets.map((f) => ({ label: f.label, body: f.body })));
 
   return (
     <div className="space-y-3">
@@ -48,16 +49,12 @@ export const AnchorEditor = ({ prose, onProseChange, facets, onFacetsChange }: P
                   placeholder="label"
                   value={f.label}
                   onChange={(e) =>
-                    setFacetDraft((d) =>
-                      d.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)),
-                    )
+                    setFacetDraft((d) => d.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))
                   }
                 />
                 <button
                   className="text-xs text-zinc-500 hover:text-rose-400"
-                  onClick={() =>
-                    setFacetDraft((d) => d.filter((_, j) => j !== i))
-                  }
+                  onClick={() => setFacetDraft((d) => d.filter((_, j) => j !== i))}
                 >
                   remove
                 </button>
@@ -67,11 +64,7 @@ export const AnchorEditor = ({ prose, onProseChange, facets, onFacetsChange }: P
                 className="w-full bg-zinc-900 px-2 py-1 text-sm"
                 placeholder="body"
                 value={f.body}
-                onChange={(e) =>
-                  setFacetDraft((d) =>
-                    d.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)),
-                  )
-                }
+                onChange={(e) => setFacetDraft((d) => d.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))}
               />
             </li>
           ))}

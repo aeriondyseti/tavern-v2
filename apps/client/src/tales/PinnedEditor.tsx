@@ -15,10 +15,7 @@ export const PinnedEditor = ({ pinned, onChange }: Props) => {
   const ids = useMemo(() => pinned.map((p) => p.entryId), [pinned]);
   const idSet = useMemo(() => new Set(ids), [ids]);
   const candidates = useMemo(
-    () =>
-      entries
-        .filter((e) => !idSet.has(e.id))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+    () => entries.filter((e) => !idSet.has(e.id)).sort((a, b) => a.name.localeCompare(b.name)),
     [entries, idSet],
   );
 
@@ -42,16 +39,11 @@ export const PinnedEditor = ({ pinned, onChange }: Props) => {
   return (
     <div className="space-y-2">
       <ul className="space-y-1">
-        {pinned.length === 0 && (
-          <li className="text-[11px] italic text-zinc-700">no pins</li>
-        )}
+        {pinned.length === 0 && <li className="text-[11px] italic text-zinc-700">no pins</li>}
         {pinned.map((p, i) => {
           const t = types.find((x) => x.id === p.typeId);
           return (
-            <li
-              key={p.id}
-              className="flex items-center gap-1 border border-zinc-800 px-2 py-1 text-sm"
-            >
+            <li key={p.id} className="flex items-center gap-1 border border-zinc-800 px-2 py-1 text-sm">
               <span className="flex flex-1 flex-col">
                 <span className="text-zinc-200">{p.entryName}</span>
                 <span className="text-[10px] text-zinc-500">{t?.name ?? "—"}</span>

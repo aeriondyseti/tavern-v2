@@ -1,10 +1,10 @@
+import type { BeatEvent } from "@tavern/shared";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { type SSEStreamingApi, streamSSE } from "hono/streaming";
 import { z } from "zod";
-import type { BeatEvent } from "@tavern/shared";
 
-import { type Db } from "../db/client.js";
+import type { Db } from "../db/client.js";
 import { scenes } from "../db/schema.js";
 import { getEffectiveSetup } from "../tales/repo.js";
 import {
@@ -43,11 +43,7 @@ type StreamArgs = {
   altIndex?: number;
 };
 
-const streamBeatGeneration = async (
-  db: Db,
-  stream: SSEStreamingApi,
-  args: StreamArgs,
-) => {
+const streamBeatGeneration = async (db: Db, stream: SSEStreamingApi, args: StreamArgs) => {
   const sceneRow = db.select().from(scenes).where(eq(scenes.id, args.sceneId)).get();
   if (!sceneRow) {
     await stream.writeSSE({
@@ -104,12 +100,7 @@ const streamBeatGeneration = async (
   });
 
   completeBeat(db, args.beatId, {
-    status:
-      result.status === "cancelled"
-        ? "cancelled"
-        : result.status === "error"
-          ? "error"
-          : "complete",
+    status: result.status === "cancelled" ? "cancelled" : result.status === "error" ? "error" : "complete",
     narratorOutput: result.narratorOutput,
   });
   writeTranscript(db, {
@@ -128,14 +119,10 @@ export const buildNarratorRoutes = (db: Db) => {
 
   r.get("/scenes/:id/beats", (c) => c.json(listBeatsForScene(db, c.req.param("id"))));
 
-  r.get("/beats/:id/transcripts", (c) =>
-    c.json(getTranscriptsForBeat(db, c.req.param("id"))),
-  );
+  r.get("/beats/:id/transcripts", (c) => c.json(getTranscriptsForBeat(db, c.req.param("id"))));
 
   r.delete("/beats/:id", (c) =>
-    deleteBeat(db, c.req.param("id"))
-      ? c.body(null, 204)
-      : c.json({ error: "not found" }, 404),
+    deleteBeat(db, c.req.param("id")) ? c.body(null, 204) : c.json({ error: "not found" }, 404),
   );
 
   r.patch("/beats/:id", async (c) => {

@@ -7,9 +7,7 @@ export type StorageInfo = { dbPath: string; oauth: OauthStatus };
 export const settingsApi = {
   get: () => send("/api/settings").then((r) => json<Settings>(r)),
   patch: (patch: SettingsPatch) =>
-    send("/api/settings", { method: "PATCH", body: JSON.stringify(patch) }).then((r) =>
-      json<Settings>(r),
-    ),
+    send("/api/settings", { method: "PATCH", body: JSON.stringify(patch) }).then((r) => json<Settings>(r)),
   oauthStatus: () => send("/api/oauth/status").then((r) => json<OauthStatus>(r)),
   storageInfo: () => send("/api/storage/info").then((r) => json<StorageInfo>(r)),
 };

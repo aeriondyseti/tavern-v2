@@ -1,16 +1,15 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-
+import { type OauthStatus, SettingsPatch } from "@tavern/shared";
 import { Hono } from "hono";
-import { SettingsPatch, type OauthStatus } from "@tavern/shared";
 import { z } from "zod";
 
 import { DB_PATH } from "../config.js";
-import { type Db } from "../db/client.js";
+import type { Db } from "../db/client.js";
 import { applyEmbeddingProvider } from "../embeddings/index.js";
-import { BackupSchema, applyRestore, buildBackup } from "./backup.js";
-import { getSettings, updateSettings } from "./repo.js";
+import { applyRestore, BackupSchema, buildBackup } from "./backup.js";
+import { ensureSettings, updateSettings } from "./repo.js";
 
 const CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
 const RestoreMode = z.enum(["merge", "replace"]);
@@ -23,7 +22,7 @@ const oauthStatus = (): OauthStatus => ({
 export const buildSettingsRoutes = (db: Db) => {
   const r = new Hono();
 
-  r.get("/settings", (c) => c.json(getSettings(db)));
+  r.get("/settings", (c) => c.json(ensureSettings(db)));
 
   r.patch("/settings", async (c) => {
     const body = SettingsPatch.safeParse(await c.req.json());
@@ -35,9 +34,7 @@ export const buildSettingsRoutes = (db: Db) => {
 
   r.get("/oauth/status", (c) => c.json(oauthStatus()));
 
-  r.get("/storage/info", (c) =>
-    c.json({ dbPath: DB_PATH, oauth: oauthStatus() }),
-  );
+  r.get("/storage/info", (c) => c.json({ dbPath: DB_PATH, oauth: oauthStatus() }));
 
   r.get("/backup", (c) => {
     const backup = buildBackup(db);

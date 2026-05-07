@@ -5,17 +5,31 @@
   "description": "Browser-based tool for telling stories with an AI Narrator.",
   "license": "MIT",
   "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
-  "packageManager": "pnpm@9.12.0",
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "pnpm --filter @tavern/shared build && pnpm --parallel -r dev",
-    "build": "pnpm --filter @tavern/shared build && pnpm --filter @tavern/client build && pnpm --filter tavern build",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "dev": "bun --filter '*' dev",
+    "build": "bun --filter @tavern/client build && bun --filter tavern build",
+    "typecheck": "bun --filter '*' typecheck",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "knip": "knip",
+    "arch": "dependency-cruiser apps packages",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "biome check --write --no-errors-on-unmatched"
   },
   "devDependencies": {
-    "typescript": "^5.6.3"
+    "@biomejs/biome": "^2.4.10",
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
+    "dependency-cruiser": "^17.3.10",
+    "husky": "^9.1.7",
+    "knip": "^6.3.0",
+    "lint-staged": "^16.4.0",
+    "typescript": "^5.6.3",
+    "vitest": "^3.2.1"
   }
 }

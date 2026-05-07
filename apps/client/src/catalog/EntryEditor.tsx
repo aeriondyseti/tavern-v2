@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { useCatalog, type EntryDraft } from "./store.js";
-import {
-  DIRECTION_TIERS,
-  FACET_MODES,
-  KIND_DIRECTION,
-  NEW_ENTRY_SENTINEL,
-} from "./types.js";
+import { type EntryDraft, useCatalog } from "./store.js";
 import type { DirectionTier, Entry, FacetMode } from "./types.js";
+import { DIRECTION_TIERS, FACET_MODES, KIND_DIRECTION, NEW_ENTRY_SENTINEL } from "./types.js";
 
 type FacetField = EntryDraft["facets"][number];
 
@@ -32,18 +27,10 @@ const blankDraft = (typeId: string): EntryDraft => ({
 });
 
 export const EntryEditor = () => {
-  const {
-    types,
-    entries,
-    selectedTypeId,
-    selectedEntryId,
-    saveEntry,
-    deleteEntry,
-    selectEntry,
-  } = useCatalog();
+  const { types, entries, selectedTypeId, selectedEntryId, saveEntry, deleteEntry, selectEntry } = useCatalog();
 
   const selectedType = useMemo(
-    () => (selectedTypeId ? types.find((t) => t.id === selectedTypeId) ?? null : null),
+    () => (selectedTypeId ? (types.find((t) => t.id === selectedTypeId) ?? null) : null),
     [selectedTypeId, types],
   );
   const isDirection = selectedType?.kindId === KIND_DIRECTION;
@@ -78,9 +65,7 @@ export const EntryEditor = () => {
 
   const update = (patch: Partial<EntryDraft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
   const updateFacet = (i: number, patch: Partial<FacetField>) =>
-    setDraft((d) =>
-      d ? { ...d, facets: d.facets.map((x, j) => (j === i ? { ...x, ...patch } : x)) } : d,
-    );
+    setDraft((d) => (d ? { ...d, facets: d.facets.map((x, j) => (j === i ? { ...x, ...patch } : x)) } : d));
 
   const onSave = async () => {
     if (!draft.name.trim()) {
@@ -181,9 +166,7 @@ export const EntryEditor = () => {
                   </select>
                   <button
                     className="text-xs text-zinc-500 hover:text-rose-400"
-                    onClick={() =>
-                      update({ facets: draft.facets.filter((_, j) => j !== i) })
-                    }
+                    onClick={() => update({ facets: draft.facets.filter((_, j) => j !== i) })}
                   >
                     remove
                   </button>
@@ -211,9 +194,7 @@ export const EntryEditor = () => {
         </div>
 
         <div>
-          <label className="mb-2 block text-xs uppercase tracking-wide text-zinc-500">
-            Cues (synonyms / aliases)
-          </label>
+          <label className="mb-2 block text-xs uppercase tracking-wide text-zinc-500">Cues (synonyms / aliases)</label>
           <div className="flex flex-wrap gap-1">
             {draft.cues.map((c, i) => (
               <span key={i} className="flex items-center gap-1 bg-zinc-800 px-2 py-1 text-xs">
@@ -254,9 +235,7 @@ export const EntryEditor = () => {
                   <span className="flex-1 text-zinc-300">{target?.name ?? c.toEntryId}</span>
                   <button
                     className="text-xs text-zinc-500 hover:text-rose-400"
-                    onClick={() =>
-                      update({ connections: draft.connections.filter((_, j) => j !== i) })
-                    }
+                    onClick={() => update({ connections: draft.connections.filter((_, j) => j !== i) })}
                   >
                     remove
                   </button>
