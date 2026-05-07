@@ -1,4 +1,4 @@
-import type { BeatEvent } from "@tavern/shared";
+import type { BeatEvent } from "@tales/shared";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { type SSEStreamingApi, streamSSE } from "hono/streaming";

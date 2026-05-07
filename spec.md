@@ -1,6 +1,6 @@
-# Tavern: build spec
+# Tales: build spec
 
-This spec is the implementation contract for Tavern v2. It assumes the design-brief
+This spec is the implementation contract for Tales v2. It assumes the design-brief
 (design-brief.md) as context and locks every decision needed to start building. Open
 items at the end are explicit; nothing else should be invented at code time.
 
@@ -18,7 +18,7 @@ items at the end are explicit; nothing else should be invented at code time.
 | Retrieval | Hybrid: BM25 lexical + embedding cosine similarity |
 | Cue role | Searchable boost text (synonyms/aliases), not triggers |
 | Connections | `brings` only; transitive with configurable depth cap; cycle-broken |
-| Composition model | Agent-native (option B): SDK runs the loop; Tavern composes system prompt + recent Beats |
+| Composition model | Agent-native (option B): SDK runs the loop; Tales composes system prompt + recent Beats |
 | Marks | Dropped |
 | Pinned | Story-level and Scene-level; Scene overrides Story; rendered as system-generated lookup instructions |
 | Active Directions ordering | Priority tiers (Absolute / Strong / Normal / Background) + manual order within tier |
@@ -41,7 +41,7 @@ items at the end are explicit; nothing else should be invented at code time.
 
 ## 2. Vision recap (one paragraph)
 
-Tavern is a single-user, local-first, browser+server tool for telling stories with a
+Tales is a single-user, local-first, browser+server tool for telling stories with a
 Claude Narrator. The user authors a Catalog of Directions (persistent stance) and World
 entries (situational lore). When the user writes a Beat, the server composes a system
 prompt from active Directions plus a Pinned-lookup block, hands the Agent SDK the recent
@@ -78,7 +78,7 @@ demand. The corpus is portable; the loop is replaceable.
   loopback bind. Server defaults to `127.0.0.1:5174`; client dev server proxies API.
 - **Process model.** One Node process. The MCP server is in-process (registered to the
   Agent SDK at invocation time). The Agent SDK invocation is per-Beat.
-- **OAuth.** The host machine must have `claude login` completed before starting Tavern.
+- **OAuth.** The host machine must have `claude login` completed before starting Tales.
   Settings shows OAuth status and a "re-login" affordance that runs the `claude login`
   flow in a child process.
 - **No telemetry, no external sync.**
@@ -86,7 +86,7 @@ demand. The corpus is portable; the loop is replaceable.
 ## 4. Repository layout
 
 ```
-tavern-v2/
+tales-v2/
 ├── apps/
 │   ├── client/        # React + Vite
 │   └── server/        # Hono + Node
@@ -98,8 +98,8 @@ tavern-v2/
 └── .github/workflows/ci.yml
 ```
 
-- pnpm workspaces. Single `tavern` package published to npm; `apps/server` is the
-  bin entry (`tavern serve`), `apps/client` builds into the server's static dir at
+- pnpm workspaces. Single `tales` package published to npm; `apps/server` is the
+  bin entry (`tales serve`), `apps/client` builds into the server's static dir at
   publish time.
 - TypeScript everywhere; strict mode.
 - Vitest for tests.
@@ -336,7 +336,7 @@ Sections:
 - **Embeddings**: provider toggle (local | api). Local model picker (`bge-small`,
   `all-MiniLM-L6-v2`, custom). API endpoint URL + key. "Reindex all" action; warns if
   switching models.
-- **Storage**: SQLite file path (read-only display). Backup → download `tavern-catalog-<ts>.json`.
+- **Storage**: SQLite file path (read-only display). Backup → download `tales-catalog-<ts>.json`.
   Restore → file picker; merge or replace dialog.
 - **About**: version, license, link to design-brief.
 
@@ -424,7 +424,7 @@ Empty list → block omitted.
 Use `query()` from `@anthropic-ai/claude-agent-sdk`. Pass:
 
 - `systemPrompt: { type: 'preset', preset: 'claude_code' }` — **NO**. Use `customSystemPrompt`
-  to fully replace, since Tavern's stance is not Claude Code's.
+  to fully replace, since Tales's stance is not Claude Code's.
 - `appendSystemPrompt`: empty.
 - `mcpServers`: in-process MCP server, registered programmatically.
 - `model`: from setup.
@@ -587,7 +587,7 @@ Client reroll/edit endpoints:
 
 ```json
 {
-  "tavern_backup_version": 1,
+  "tales_backup_version": 1,
   "exported_at": 1730000000000,
   "kinds": [...],          // included for resilience; ignored on import (fixed seed)
   "types": [...],
@@ -673,7 +673,7 @@ Per global instructions:
   `main`.
 - Test job runs `pnpm typecheck` + `pnpm test` for both `apps/client` and `apps/server`.
 
-Published package: a single binary `tavern` that starts the server with the static
+Published package: a single binary `tales` that starts the server with the static
 client built in.
 
 ## 17. Milestones

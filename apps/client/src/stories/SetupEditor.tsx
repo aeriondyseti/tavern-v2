@@ -1,4 +1,4 @@
-import { MODEL_OPTIONS, type ModelId, type SetupData } from "@tavern/shared";
+import { MODEL_OPTIONS, type ModelId, type SetupData } from "@tales/shared";
 import { useEffect, useMemo, useState } from "react";
 
 import { useCatalog } from "../catalog/store.js";

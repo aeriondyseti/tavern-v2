@@ -1,4 +1,4 @@
-import type { SetupData } from "@tavern/shared";
+import type { SetupData } from "@tales/shared";
 
 import { json, send } from "../api/util.js";
 import type { AnchorFacet, PinnedEntry, Scene, Story, StorySummary } from "./types.js";

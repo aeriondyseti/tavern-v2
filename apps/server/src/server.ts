@@ -16,7 +16,7 @@ export type AppOptions = { staticRoot?: string | null };
 export const buildApp = (db: Db, opts: AppOptions = {}) => {
   const app = new Hono();
 
-  app.get("/api/health", (c) => c.json({ ok: true, name: "tavern", version: 0 }));
+  app.get("/api/health", (c) => c.json({ ok: true, name: "tales", version: 0 }));
   app.route("/api", buildCatalogRoutes(db));
   app.route("/api", buildSearchRoutes(db));
   app.route("/api", buildStoriesRoutes(db));

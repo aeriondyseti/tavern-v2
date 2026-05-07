@@ -1,4 +1,4 @@
-import type { Beat, BeatEvent, BeatTranscript } from "@tavern/shared";
+import type { Beat, BeatEvent, BeatTranscript } from "@tales/shared";
 
 import { consumeSseStream, json, send } from "../api/util.js";
 

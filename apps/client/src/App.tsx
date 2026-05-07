@@ -46,7 +46,7 @@ export const App = () => {
     <div className="flex h-full flex-col">
       <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-1.5">
         <div className="flex items-center gap-5">
-          <span className="font-serif text-base">Tavern</span>
+          <span className="font-serif text-base">Tales</span>
           <nav className="flex gap-1">
             <NavLink to="/play" className={navClass}>
               Play

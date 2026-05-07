@@ -1,4 +1,4 @@
-import type { Settings, SettingsPatch } from "@tavern/shared";
+import type { Settings, SettingsPatch } from "@tales/shared";
 import { eq } from "drizzle-orm";
 
 import type { Db } from "../db/client.js";

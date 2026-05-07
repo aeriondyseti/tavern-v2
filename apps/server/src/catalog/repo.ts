@@ -7,7 +7,7 @@ import {
   type FacetMode,
   type KindId,
   newId,
-} from "@tavern/shared";
+} from "@tales/shared";
 import { asc, eq, inArray, max } from "drizzle-orm";
 
 import type { Db } from "../db/client.js";

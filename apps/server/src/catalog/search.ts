@@ -1,4 +1,4 @@
-import type { SearchCandidate } from "@tavern/shared";
+import type { SearchCandidate } from "@tales/shared";
 import { inArray, sql } from "drizzle-orm";
 
 import type { Db } from "../db/client.js";

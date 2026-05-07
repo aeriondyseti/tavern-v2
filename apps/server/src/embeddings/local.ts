@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 
 import { env, type FeatureExtractionPipeline, type ProgressInfo, pipeline } from "@huggingface/transformers";
-import type { EmbedderStatus } from "@tavern/shared";
+import type { EmbedderStatus } from "@tales/shared";
 
 import { TRANSFORMERS_CACHE } from "../config.js";
 

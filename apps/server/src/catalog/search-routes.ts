@@ -1,4 +1,4 @@
-import { SearchRequest } from "@tavern/shared";
+import { SearchRequest } from "@tales/shared";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 

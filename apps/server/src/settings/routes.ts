@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { type OauthStatus, SettingsPatch } from "@tavern/shared";
+import { type OauthStatus, SettingsPatch } from "@tales/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -38,7 +38,7 @@ export const buildSettingsRoutes = (db: Db) => {
 
   r.get("/backup", (c) => {
     const backup = buildBackup(db);
-    const filename = `tavern-catalog-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    const filename = `tales-catalog-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
     return c.json(backup, 200, {
       "content-disposition": `attachment; filename="${filename}"`,
     });

@@ -1,4 +1,4 @@
-import type { DirectionTier, SetupData } from "@tavern/shared";
+import type { DirectionTier, SetupData } from "@tales/shared";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 
 import type { Db } from "../db/client.js";

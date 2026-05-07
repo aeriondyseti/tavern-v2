@@ -12,7 +12,7 @@ All notable changes to this project are documented here. The format is based on
   `bun:sqlite` with `drizzle-orm/bun-sqlite`.
 - `@huggingface/transformers` 3 → 4. The synchronous embedder preload before
   `serve()` is no longer required under `Bun.serve`.
-- `@tavern/shared` is now consumed as TypeScript source via the workspace; the
+- `@tales/shared` is now consumed as TypeScript source via the workspace; the
   prebuild `dist/` step is gone.
 - Tooling: biome (lint/format), knip (unused exports), dependency-cruiser
   (architecture rules), husky + lint-staged + commitlint, vitest at the root,

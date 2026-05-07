@@ -1,4 +1,4 @@
-import { SetupData } from "@tavern/shared";
+import { SetupData } from "@tales/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 

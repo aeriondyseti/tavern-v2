@@ -1,4 +1,4 @@
-import type { SetupData } from "@tavern/shared";
+import type { SetupData } from "@tales/shared";
 import { useEffect, useState } from "react";
 
 import { useCatalog } from "../catalog/store.js";

@@ -1,4 +1,4 @@
-import type { SetupData } from "@tavern/shared";
+import type { SetupData } from "@tales/shared";
 import { create } from "zustand";
 
 import { storiesApi } from "./api.js";

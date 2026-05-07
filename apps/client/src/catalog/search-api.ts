@@ -1,4 +1,4 @@
-import type { EmbedderStatus } from "@tavern/shared";
+import type { EmbedderStatus } from "@tales/shared";
 
 import { consumeSseStream } from "../api/util.js";
 

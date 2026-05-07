@@ -5,4 +5,4 @@ export type {
   SceneSummary,
   Story,
   StorySummary,
-} from "@tavern/shared";
+} from "@tales/shared";

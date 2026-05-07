@@ -1,4 +1,4 @@
-import type { BeatEvent, BeatTranscript } from "@tavern/shared";
+import type { BeatEvent, BeatTranscript } from "@tales/shared";
 import { useEffect, useState } from "react";
 
 import { beatsApi } from "./api.js";

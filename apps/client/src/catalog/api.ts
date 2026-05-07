@@ -1,4 +1,4 @@
-import type { EntryCreate, EntryUpdate, KindId } from "@tavern/shared";
+import type { EntryCreate, EntryUpdate, KindId } from "@tales/shared";
 
 import { json, send } from "../api/util.js";
 import type { Entry, Kind, Type } from "./types.js";

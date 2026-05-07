@@ -5,9 +5,9 @@ export {
   KIND_DIRECTION,
   KIND_WORLD,
   KindId,
-} from "@tavern/shared";
+} from "@tales/shared";
 
-import type { ConnectionKind, DirectionTier, FacetMode, KindId } from "@tavern/shared";
+import type { ConnectionKind, DirectionTier, FacetMode, KindId } from "@tales/shared";
 
 export const FACET_MODES = ["always", "cue"] as const satisfies readonly FacetMode[];
 export const DIRECTION_TIERS = [

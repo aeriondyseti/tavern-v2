@@ -5,7 +5,7 @@ import {
   type BeatTranscript,
   newId,
   type SearchCallRecord,
-} from "@tavern/shared";
+} from "@tales/shared";
 import { and, asc, desc, eq, inArray, max, sql } from "drizzle-orm";
 
 import type { Db } from "../db/client.js";

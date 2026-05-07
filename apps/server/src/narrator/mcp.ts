@@ -1,5 +1,5 @@
 import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
-import type { SearchCallRecord, SetupData } from "@tavern/shared";
+import type { SearchCallRecord, SetupData } from "@tales/shared";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import * as repo from "../catalog/repo.js";
@@ -25,7 +25,7 @@ const textResult = (data: unknown) => ({
 
 export const buildNarratorMcpServer = (db: Db, ctx: NarratorContext) =>
   createSdkMcpServer({
-    name: "tavern-catalog",
+    name: "tales-catalog",
     version: "0.1.0",
     tools: [
       tool(

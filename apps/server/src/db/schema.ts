@@ -1,8 +1,8 @@
-import type { ConnectionKind, DirectionTier, FacetMode, KindId } from "@tavern/shared";
+import type { ConnectionKind, DirectionTier, FacetMode, KindId } from "@tales/shared";
 import { sql } from "drizzle-orm";
 import { blob, check, index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
-// Hardcoded here (rather than imported from @tavern/shared) because drizzle-kit's
+// Hardcoded here (rather than imported from @tales/shared) because drizzle-kit's
 // CJS loader can't resolve through workspace TS sources. The `satisfies` clauses
 // pin them to the shared Zod-derived types so any drift is a typecheck error.
 export const KIND_IDS = ["direction", "world"] as const satisfies readonly KindId[];
@@ -17,7 +17,7 @@ export const DIRECTION_TIERS = [
 
 export const KIND_DIRECTION: KindId = "direction";
 export const KIND_WORLD: KindId = "world";
-export type { ConnectionKind, DirectionTier, FacetMode, KindId } from "@tavern/shared";
+export type { ConnectionKind, DirectionTier, FacetMode, KindId } from "@tales/shared";
 
 export const kinds = sqliteTable("kinds", {
   id: text("id").primaryKey(),
@@ -121,7 +121,7 @@ export type SetupScope = (typeof SETUP_SCOPES)[number];
 export const setups = sqliteTable("setups", {
   id: text("id").primaryKey(),
   scope: text("scope", { enum: SETUP_SCOPES }).notNull(),
-  data: text("data", { mode: "json" }).$type<import("@tavern/shared").SetupData>().notNull(),
+  data: text("data", { mode: "json" }).$type<import("@tales/shared").SetupData>().notNull(),
 });
 
 export const stories = sqliteTable("stories", {

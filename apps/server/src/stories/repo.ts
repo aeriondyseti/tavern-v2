@@ -8,7 +8,7 @@ import {
   type SetupData,
   type Story,
   type StorySummary,
-} from "@tavern/shared";
+} from "@tales/shared";
 import { asc, eq, inArray, max, sql } from "drizzle-orm";
 
 import type { Db } from "../db/client.js";
@@ -33,7 +33,7 @@ export type {
   SceneSummary,
   Story,
   StorySummary,
-} from "@tavern/shared";
+} from "@tales/shared";
 
 export type PinnedScope = { kind: "story"; id: string } | { kind: "scene"; id: string };
 

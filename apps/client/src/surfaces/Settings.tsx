@@ -4,7 +4,7 @@ import {
   type OauthStatus,
   type Settings as SettingsData,
   type SettingsPatch,
-} from "@tavern/shared";
+} from "@tales/shared";
 import { useEffect, useRef, useState } from "react";
 
 import { useCatalog } from "../catalog/store.js";
